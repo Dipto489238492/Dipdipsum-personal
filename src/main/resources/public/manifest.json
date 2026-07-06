@@ -1,0 +1,22 @@
+{
+  "short_name": "Dipsum",
+  "name": "Dipsum Chat Lounge",
+  "icons": [
+    {
+      "src": "dipsum-logo.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "dipsum-logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/index.html",
+  "background_color": "#fffdf5",
+  "theme_color": "#aad052",
+  "display": "standalone",
+  "orientation": "portrait",
+  "gcm_sender_id": "103953800507"
+}

@@ -1,0 +1,2106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+    <title>Enterprise Control Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #d1e49c; color: #334155; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-field { width: 100%; padding: 12px; margin-bottom: 15px; background-color: #aad052; border: 1px solid #fffdf5; border-radius: 6px; color: white; font-size: 14px; box-sizing: border-box; }
+        .app-card { background-color: #fffdf5; border: none; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); text-align: center; }
+        h2 { margin-top: 0; font-size: 24px; font-weight: 600; color: #aad052; } 
+        p { color: #ffc8b0; font-size: 14px; margin-bottom: 30px; line-height: 1.5; } 
+        .sync-btn { background: #aad052; color: white; border: none; padding: 14px; font-size: 15px; font-weight: 600; border-radius: 8px; cursor: pointer; width: 100%; transition: transform 0.1s ease; }
+        .sync-btn:active { transform: scale(0.98); }
+        .lounge-container { display: flex; width: 900px; height: 600px; background: #fffdf5; border-radius: 16px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); overflow: hidden; }
+        .lounge-sidebar { width: 30%; background-color: #fffdf5; padding: 20px; border-right: 1px solid #d1e49c; }
+        .lounge-main { width: 70%; display: flex; justify-content: center; align-items: center; color: #334155; text-align: center; background-color: #fffdf5; }
+        .profile-section { display: flex; align-items: center; gap: 12px; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(209, 228, 156, 0.85); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-box { background: #fffdf5; border: 1px solid #aad052; padding: 30px; border-radius: 12px; width: 340px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.3); transform: scale(0.9); transition: transform 0.3s ease; }
+        .modal-overlay.active .modal-box { transform: scale(1); }
+        .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+        .btn-accept { flex: 1; background: #22c55e; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .btn-decline { flex: 1; background: #ffc8b0; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .status-online { background-color: #22c55e; box-shadow: 0 0 8px #22c55e; } 
+        .status-offline { background-color: #94a3b8; } 
+        .unread-badge { background-color: #8a0c3c; color: white; font-size: 11px; font-weight: bold; padding: 2px 7px; border-radius: 10px; margin-left: 8px; display: inline-block; }
+
+        .chat-window-pane { display: flex; flex-direction: column; width: 100%; height: 100%; background-color: #fffdf5; }
+        .chat-header-bar { padding: 10px 20px; background-color: #fffdf5; border-bottom: 1px solid #aad052; display: flex; align-items: center; }
+        .header-dp-avatar { width: 45px; height: 45px; border-radius: 50%; background-color: #fffdf5; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-right: 15px; border: 2px solid #aad052; color: #aad052; }
+        .header-meta-box { display: flex; flex-direction: column-reverse; align-items: flex-start; gap: 4px; }
+        .header-profile-title { font-size: 16px; font-weight: 600; color: #334155; line-height: 1.2; }
+        .status-round-container { display: inline-flex; align-items: center; justify-content: center; margin-bottom: 2px; }
+        .status-round-indicator { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; display: block; transition: all 0.3s ease-in-out; }
+        .status-round-indicator.online { box-shadow: 0 0 10px rgba(34, 197, 94, 0.7); animation: statusRoundPulse 2s infinite ease-in-out; }
+
+        @keyframes statusRoundPulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: 0.85; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes slideInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulseGlow { 0% { opacity: 0.6; } 50% { opacity: 1; box-shadow: 0 0 8px rgba(21, 128, 61, 0.4); } 100% { opacity: 0.6; } }
+
+        .chat-log-display { flex: 1; padding: 20px; overflow-y: auto; overflow-x: hidden; background: url('dc.png') repeat center center; background-size: cover; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; }
+        .chat-footer-input-bar { display: flex; align-items: flex-end; gap: 4px; padding: 10px 6px; background: #e6c7c3; border-top: 1px solid #edbdb7; width: 100%; box-sizing: border-box; }
+
+        .msg-bubble { max-width: 100%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; text-align: left; animation: slideInUp 0.2s ease-out forwards; word-break: break-word !important; overflow-wrap: anywhere !important; }
+        .msg-outgoing { background: linear-gradient(135deg, #aad052 0%, #c1df7e 100%); color: #334155; border-bottom-right-radius: 2px; }
+        .msg-incoming { background: linear-gradient(135deg, #fb9fa3 0%, #ffc8b0 100%); color: black; border-bottom-left-radius: 2px; }
+        
+        #userListContainer { max-height: calc(100vh - 200px); overflow-y: auto; padding-right: 4px; }
+        #userListContainer::-webkit-scrollbar, .chat-log-display::-webkit-scrollbar { width: 6px; }
+        #userListContainer::-webkit-scrollbar-thumb, .chat-log-display::-webkit-scrollbar-thumb { background: #d1e49c; border-radius: 10px; }
+
+        .sidebar-dp-avatar { width: 38px; height: 38px; border-radius: 50%; background-color: #fffdf5; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 12px; border: 2px solid #aad052; flex-shrink: 0; color: #aad052; cursor: pointer; }
+        .msg-bubble-media { max-width: 100% !important; border-radius: 8px; margin-top: 4px; border: 1px solid #ffc8b0; cursor: pointer; transition: opacity 0.2s; object-fit: contain; }
+        .msg-bubble-media:hover { opacity: 0.9; }
+
+        .tool-action-btn { background: none; border: none; font-size: 22px; cursor: pointer; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 2px; flex-shrink: 0; transition: all 0.2s; }
+        .tool-action-btn:hover { transform: scale(1.1); }
+
+        /* --- MOMENT UI CSS --- */
+        .moment-ring { box-shadow: 0 0 0 3px #fffdf5, 0 0 0 6px #f43f5e; transition: transform 0.2s; }
+        .moment-ring:hover { transform: scale(1.05); }
+
+        #momentViewerOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; display: none; flex-direction: column; }
+        .moment-viewer-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent); color: white; }
+        .moment-viewer-img { flex: 1; width: 100%; max-height: 80vh; object-fit: contain; margin: auto; }
+        
+        .sticker-drawer-panel { display: flex; gap: 8px; background: #1e293b; border: 1px solid #aad052; padding: 12px; border-radius: 20px; position: absolute; bottom: 70px; right: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15); z-index: 100; max-width: 280px; flex-wrap: wrap; justify-content: center; max-height: 220px; overflow-y: auto; }
+        .sticker-drawer-panel img { width: 55px; height: 55px; cursor: pointer; transition: transform 0.1s ease; object-fit: contain; border-radius: 8px; }
+        .sticker-drawer-panel img:hover { transform: scale(1.15); background: rgba(255,255,255,0.1); }
+        .sticker-display-img { max-width: 140px; border-radius: 8px; margin-top: 4px; background: transparent; pointer-events: none; }
+
+        @media screen and (max-width: 768px) {
+            html, body { display: block !important; height: 100dvh !important; width: 100vw !important; overflow: hidden !important; position: fixed !important; top: 0; left: 0; }
+            .app-card { margin: 0 !important; width: 90% !important; max-width: 360px !important; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+            .lounge-container { position: fixed !important; top: 0 !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: 100vw !important; height: 100dvh !important; max-width: 100vw !important; border-radius: 0px !important; margin: 0 !important; box-shadow: none !important; overflow: hidden !important; background-color: #fffdf5 !important; }
+            .lounge-sidebar { position: absolute !important; top: 0 !important; bottom: 0 !important; left: 0 !important; width: 100vw !important; box-sizing: border-box !important; z-index: 10 !important; transition: transform 0.2s ease-in-out !important; background-color: #fffdf5 !important; }
+            .lounge-main { position: absolute !important; top: 0 !important; bottom: 0 !important; left: 0 !important; width: 100vw !important; box-sizing: border-box !important; z-index: 5 !important; background-color: #fffdf5 !important; display: flex !important; flex-direction: column !important; justify-content: flex-start !important; align-items: stretch !important; }
+            body.mobile-chat-view-engaged .lounge-sidebar { transform: translateX(-100%) !important; }
+            body.mobile-chat-view-engaged .lounge-main { z-index: 20 !important; }
+            .chat-window-pane { width: 100% !important; height: 100% !important; display: flex !important; flex-direction: column !important; box-sizing: border-box !important; position: relative !important; background-color: #fffdf5 !important; }
+            .chat-log-display { flex: 1 !important; padding: 12px !important; overflow-y: auto !important; box-sizing: border-box !important; }
+            input[type="text"] { font-size: 16px !important; flex: 1 !important; min-width: 0 !important; background-color: #aad052 !important; border: 1px solid #fffdf5 !important; color: white; }
+            #mobileSendBtn{ margin-right: 25px !important; background-color: #aad052 !important; }
+        }
+        #msgInputField::-webkit-scrollbar { display: none; }
+        #msgInputField { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @keyframes softBreathe { 0% { transform: translateY(0px) scale(1); } 50% { transform: translateY(-6px) scale(1.02); } 100% { transform: translateY(0px) scale(1); } }
+        .alive-logo { animation: softBreathe 3.5s ease-in-out infinite; filter: drop-shadow(0 8px 15px rgba(170, 208, 82, 0.3)); }
+        /* --- NEW: MESSAGE HIGHLIGHT ANIMATION --- */
+        @keyframes messageHighlightAnimation {
+            0% { background: #fef08a; transform: scale(1.02); box-shadow: 0 0 15px #fef08a; }
+            100% { transform: scale(1); box-shadow: none; }
+        }
+        .msg-highlight-active {
+            animation: messageHighlightAnimation 1.5s ease-out-of-bound;
+        }
+
+        /* --- NEW: FLOATING SCROLL TO BOTTOM BUTTON --- */
+        .scroll-bottom-btn {
+            position: absolute;
+            bottom: 75px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background-color: #aad052;
+            color: white;
+            border: 2px solid #fffdf5;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 99;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.2s ease;
+        }
+        .scroll-bottom-btn.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .scroll-bottom-btn:hover {
+            transform: scale(1.1);
+            background-color: #9ec246;
+        }
+
+        /* --- NEW: HEARTBEAT ANIMATION --- */
+        @keyframes floatUpHeart {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            20% { transform: translateY(-20vh) scale(1.2); opacity: 0.9; }
+            100% { transform: translateY(-100vh) scale(1); opacity: 0; }
+        }
+        .floating-heart {
+            position: absolute;
+            bottom: 70px;
+            pointer-events: none;
+            animation: floatUpHeart ease-in forwards;
+            z-index: 9999;
+            text-shadow: 0 0 10px rgba(255, 105, 180, 0.6);
+        }
+
+        /* --- NEW: TIME CAPSULE CSS --- */
+        #capsuleModal { z-index: 10001; }
+        .capsule-timer-btn { background: #e6c7c3; border: 1px solid #aad052; padding: 8px; border-radius: 6px; cursor: pointer; flex: 1; margin: 2px; font-weight: bold; color: #7a1029; transition: all 0.2s;}
+        .capsule-timer-btn.selected { background: #fb9fa3; color: white; border-color: #ffc8b0; transform: scale(1.05); }
+        
+        #capsuleDisplayOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(255,200,176,0.95), rgba(251,159,163,0.95));
+            z-index: 10005; display: none; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 1s ease; backdrop-filter: blur(5px);
+        }
+        #capsuleDisplayOverlay.visible { opacity: 1; }
+        .capsule-envelope { font-size: 80px; animation: softBreathe 3s infinite; margin-bottom: 20px; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.1)); }
+        .capsule-message-box {
+            background: #fffdf5; padding: 30px; border-radius: 20px; max-width: 80%; width: 300px;
+            text-align: center; color: #7a1029; font-size: 18px; font-weight: bold;
+            box-shadow: 0 20px 40px rgba(122, 16, 41, 0.2); transform: scale(0.8) translateY(20px); 
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 2px solid #fb9fa3;
+        }
+        #capsuleDisplayOverlay.open .capsule-message-box { transform: scale(1) translateY(0); }
+        .capsule-locked-bubble { opacity: 0.7; font-style: italic; background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px) !important; }
+
+        /* --- NEW: DYNAMIC TYPING UI ANIMATION --- */
+        .hide-on-type {
+            transition: width 0.3s ease, opacity 0.3s ease, margin 0.3s ease, transform 0.3s ease;
+            width: 30px;
+            opacity: 1;
+            overflow: hidden;
+            display: flex; 
+        }
+        .chat-typing-active .hide-on-type {
+            width: 0 !important;
+            opacity: 0 !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            padding: 0 !important;
+            transform: scale(0);
+            pointer-events: none;
+        }
+
+        /* --- NEW: TAB SWITCH ANIMATION --- */
+        #userListContainer {
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        #userListContainer.tab-switching {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        /* --- NEW: DARK MODE STYLES (NIGHT MODE) --- */
+        body.dark-mode { background-color: #1e293b; color: #cbd5e1; }
+        body.dark-mode .app-card, 
+        body.dark-mode .lounge-sidebar, 
+        body.dark-mode .lounge-main, 
+        body.dark-mode .chat-window-pane, 
+        body.dark-mode .chat-header-bar, 
+        body.dark-mode .modal-box { 
+            background-color: #0f172a !important; 
+            color: #f8fafc; 
+            border-color: #334155 !important; 
+        }
+        body.dark-mode .chat-footer-input-bar { background-color: #1e293b !important; border-color: #334155 !important; }
+        body.dark-mode textarea#msgInputField { background-color: #334155 !important; color: #f8fafc !important; border-color: #475569 !important; }
+        body.dark-mode .msg-outgoing { background: linear-gradient(135deg, #475569 0%, #334155 100%) !important; color: white !important; border: 1px solid #64748b; }
+        body.dark-mode .msg-incoming { background: linear-gradient(135deg, #7a1029 0%, #be123c 100%) !important; color: white !important; }
+        body.dark-mode #userListContainer > div { background: #1e293b !important; border: 1px solid #334155; }
+        body.dark-mode h2, body.dark-mode h3, body.dark-mode h4, body.dark-mode .header-profile-title { color: #f8fafc !important; }
+        
+        /* THE MAGIC BACKGROUND SWAP */
+        body.dark-mode .chat-log-display { 
+            background: url('dc2.png') repeat center center !important; 
+            background-size: cover !important; 
+        }
+
+        /* --- NEW: THE INTERRUPT OVERLAY CSS --- */
+        .interrupt-steamy-glass {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4); /* Dim the original chat lightly */
+            backdrop-filter: blur(20px); /* Heavy blur for the frosted effect */
+            z-index: 20000; /* Place it above EVERYTHING */
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out; /* Smooth fade in/out */
+            pointer-events: none; /* Prevents clicks from being absorbed */
+        }
+        
+        /* The .active class that JavaScript will toggle */
+        .interrupt-steamy-glass.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .interrupt-pop-image {
+            width: 80%; 
+            max-width: 300px;
+            object-fit: contain;
+            filter: drop-shadow(0 15px 25px rgba(0,0,0,0.5)); 
+            animation: avatarPopIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+        }
+
+        @keyframes avatarPopIn {
+            0% { opacity: 0; transform: scale(0.5) translateY(50px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        
+    </style>
+    <link rel="manifest" href="/manifest.json">
+</head>
+<body>
+
+<div class="app-card" id="loginCard">
+    <img src="dipsum-logo.png" alt="Dipsum Logo" class="alive-logo" style="width: 240px; height: auto; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto;">
+    <h2 id="authTitle">Your Secure Chat Portal</h2>
+    <p style="margin-top: 20px; font-size: 18px; color: #b31e41;" id="authDescription">Pull up a cushion and stay a while. 🧸</p>
+    <input type="text" id="usernameInput" placeholder="Enter Username" class="login-field">
+    <input type="password" id="passwordInput" placeholder="Enter Password" class="login-field">
+    
+    <!-- NEW: Terms & Conditions Checkbox (Hidden by default) -->
+    <div id="tncContainer" style="display: none; margin: 10px 0 15px 0; text-align: left; font-size: 13px; color: #7a1029; align-items: flex-start; gap: 8px;">
+        <input type="checkbox" id="tncCheckbox" style="margin-top: 2px; accent-color: #aad052; transform: scale(1.2); cursor: pointer;">
+        <label for="tncCheckbox" style="cursor: pointer; line-height: 1.4;">I have read and agree to the <span style="text-decoration: underline; font-weight: bold;" onclick="document.getElementById('termsModal').classList.add('active'); event.preventDefault();">Terms & Conditions</span>.</label>
+    </div>
+
+    <button class="sync-btn" id="authBtn" onclick="handleAuthSubmit()">Access Account</button>
+    
+    <p style="margin-top: 15px; font-size: 14px; color: #7a1029; cursor: pointer; text-decoration: underline; font-weight: bold;" id="forgotPassBtn" onclick="openForgotPasswordModal()">Forgot Password?</p>
+    
+    <p style="margin-top: 15px; font-size: 18px; color: #b31e41;">
+        <span id="toggleText">Need an account?</span>
+        <span id="toggleLink" style="color: #3b82f6; cursor: pointer; text-decoration: underline;" onclick="toggleAuthMode()">Create one here</span>
+    </p>
+</div>
+    
+<div id="chatLounge" class="lounge-container" style="display: none;">
+    <div class="lounge-sidebar">
+        <div class="profile-section" style="display: flex; align-items: center; gap: 12px; padding: 10px; position: relative;">
+            
+            <button onclick="openSettingsMenu()" style="position: absolute; right: 10px; top: 15px; background: none; border: none; font-size: 24px; cursor: pointer; transition: transform 0.3s ease;" onmouseover="this.style.transform='rotate(45deg)'" onmouseout="this.style.transform='rotate(0deg)'" title="Settings">⚙️</button>
+
+            <input type="file" id="userProfilePicUploader" accept="image/*" style="display: none;" onchange="executeOwnProfilePicUpload(this)">
+            <div id="currentUserAvatarWrapper" style="position: relative;" title="Your DP">
+                <div class="sidebar-dp-avatar" id="myProfileAvatarElement" style="width:70px; height:70px; font-size:32px; border-radius:50%; background:#2563eb; color:white; display:flex; align-items:center; justify-content:center; font-weight:bold;">👤</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <h3 id="currentProfileName" style="font-weight: bold; font-size: 18px; color: #334155; margin: 0;">Username</h3>
+                    <span id="userRecoveryId" onclick="revealAndCopyRecoveryId()" style="background: #e6c7c3; color: #7a1029; font-size: 11px; padding: 2px 6px; border-radius: 10px; font-weight: bold; border: 1px solid #fb9fa3; cursor: pointer; transition: all 0.3s ease;" title="Tap to reveal and copy">#XXXXX</span>
+                </div>
+                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                    <button onclick="openMomentCreator()" style="background: #fb9fa3; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s;">📢 Moments</button>
+                </div>
+            </div>
+        </div>
+
+        <hr style="border-color: #ad3b72; margin: 15px 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-right: 5px;">
+            <h4 style="margin: 0; color: #7a1029; font-size: 15px;">Directory</h4>
+            <div style="display: flex; gap: 4px; background: #e6c7c3; padding: 4px; border-radius: 8px;">
+                <button id="tabConnectedBtn" onclick="switchDirectoryTab('connected')" style="background: #fb9fa3; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s;">Connected</button>
+                <button id="tabNewBtn" onclick="switchDirectoryTab('new')" style="background: transparent; color: #7a1029; border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s;">Discover</button>
+            </div>
+        </div>
+        <div id="userListContainer"></div>
+    </div>
+
+    <div class="lounge-main">
+        <div id="chatPlaceholder">
+            <h2>Step into the Dipsum Lounge! 🧸</h2>
+            <p style="font-weight: bolder; font-size: 14px;">Choose a friendly face from the directory to start sharing sweet moments. 💕</p>
+        </div>
+    </div>
+</div>
+
+<div id="momentCreatorModal" class="modal-overlay">
+    <div class="modal-box" style="text-align: left;">
+        <h3 style="margin-top: 0; color: #aad052;">Share a Moment ✨</h3>
+        <p style="font-size: 13px; color: #555; margin-bottom: 10px;">Select who gets to see your 24-hour broadcast:</p>
+        
+        <div id="momentUserChecklist" style="background: white; border: 1px solid #ccc; padding: 10px; border-radius: 6px; max-height: 120px; overflow-y: auto; margin-bottom: 15px;">
+            </div>
+
+        <input type="file" id="momentMediaUploader" accept="image/*" style="display: none;" onchange="processMomentUpload(this)">
+        
+        <div class="modal-actions" style="margin-top: 10px;">
+            <button class="btn-accept" style="background: #fb9fa3; color: #7a1029;" onclick="document.getElementById('momentMediaUploader').click()">📸 Pick Image</button>
+            <button class="btn-decline" onclick="document.getElementById('momentCreatorModal').classList.remove('active')">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Settings & Security Modal -->
+<div id="settingsMenuModal" class="modal-overlay">
+    <div class="modal-box" style="text-align: left;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: #aad052;">⚙️ Account Settings</h3>
+            <button onclick="toggleAppTheme()" id="themeToggleBtn" style="background: none; border: none; font-size: 26px; cursor: pointer; padding: 0;" title="Toggle Day/Night Mode">☀️</button>
+        </div>
+        
+        <hr style="border-top: 1px dashed #aad052; margin: 15px 0;">
+        
+        <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #7a1029;">🔐 Change Password</h4>
+        <input type="password" id="settingOldPass" placeholder="Current Password" class="login-field" style="margin-bottom: 8px; padding: 10px;">
+        <input type="password" id="settingNewPass" placeholder="New Password" class="login-field" style="padding: 10px;">
+        <button class="sync-btn" style="padding: 10px; font-size: 13px; margin-bottom: 20px;" onclick="submitPasswordChange()">Update Password</button>
+
+        <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #7a1029;">🔥 Interrupt Avatar</h4>
+        <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+            <button id="btnAvatarBoy" onclick="setInterruptAvatar('boy')" style="flex: 1; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; border: 2px solid #aad052; background: #aad052; color: white;">👦 Boy</button>
+            <button id="btnAvatarGirl" onclick="setInterruptAvatar('girl')" style="flex: 1; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; border: 2px solid #aad052; background: transparent; color: #aad052;">👧 Girl</button>
+        </div>
+        <input type="hidden" id="settingInterruptAvatar" value="boy">
+
+        <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #7a1029;">💔 Manage Connections</h4>
+        <div id="settingsConnectionsList" style="background: rgba(0,0,0,0.05); border-radius: 8px; padding: 10px; max-height: 120px; overflow-y: auto; margin-bottom: 15px; border: 1px solid #e6c7c3;">
+            </div>
+
+        <button onclick="executeAppLogout()" class="sync-btn" style="background: #ffc8b0; color: #7a1029; width: 100%; margin-bottom: 10px;">🚪 Logout</button>
+
+        <div class="modal-actions">
+            <button class="btn-decline" style="width: 100%;" onclick="document.getElementById('settingsMenuModal').classList.remove('active')">Close Menu</button>
+        </div>
+    </div>
+</div>
+    
+<div id="momentViewerOverlay">
+    <div class="moment-viewer-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <button onclick="closeMomentViewer()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;">❮</button>
+            <span id="momentViewerAuthor" style="font-weight: bold; font-size: 18px;">Username</span>
+        </div>
+        <button onclick="closeMomentViewer()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;">✕</button>
+    </div>
+    
+    <img id="momentViewerImage" class="moment-viewer-img" src="">
+    
+    <div id="momentReplyBar" style="padding: 15px 20px; background: rgba(0,0,0,0.8); display: flex; gap: 10px;">
+        <input type="text" id="momentReplyInput" placeholder="Reply to moment..." style="flex: 1; padding: 12px; border-radius: 20px; border: none; outline: none; font-size: 15px;">
+        <button onclick="dispatchMomentReply()" style="background: #aad052; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center;">➤</button>
+    </div>
+</div>
+
+<div id="inviteModal" class="modal-overlay">
+    <div class="modal-box">
+        <div style="font-size: 35px; margin-bottom: 10px;">✉️</div>
+        <h3 style="margin: 0 0 10px 0;" id="modalTitle">Chat Invitation</h3>
+        <p style="margin: 0 0 20px 0; font-size: 14px;" id="modalMessage">Someone wants to chat with you.</p>
+        <div class="modal-actions">
+            <button class="btn-accept" onclick="submitInviteResponse(true)">Accept</button>
+            <button class="btn-decline" onclick="submitInviteResponse(false)">Decline</button>
+        </div>
+    </div>
+</div>
+
+<div id="systemAlertModal" class="modal-overlay" style="background: #fdf8ef; backdrop-filter: blur(4px);">
+    <div class="modal-box" style="background: #fdc348; border-color: #dba93b;">
+        <div style="font-size: 36px; margin-bottom: 10px;" id="sysAlertIcon">⚠️</div>
+        <h3 id="sysAlertTitle" style="color: #7a1029;">System Notification</h3>
+        <p id="sysAlertText" style="color: #b31e41;"></p>
+        <button class="sync-btn" onclick="dismissCustomSystemAlert()">Acknowledge</button>
+    </div>
+</div>
+    
+<!-- Time Capsule Creator Modal -->
+<div id="capsuleCreatorModal" class="modal-overlay">
+    <div class="modal-box" style="text-align: left; background: #fdf8ef;">
+        <h3 style="margin-top: 0; color: #aad052;">⏳ Send a Time Capsule</h3>
+        <p style="font-size: 13px; color: #555; margin-bottom: 10px;">Seal a secret message that cannot be opened until the timer hits zero.</p>
+        <textarea id="capsuleInput" placeholder="Write your secret letter here..." rows="4" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #aad052; box-sizing: border-box; resize: none; margin-bottom: 10px; font-family: inherit; font-size: 14px; outline: none;"></textarea>
+        <p style="font-size: 13px; margin-bottom: 5px; font-weight: bold; color: #334155;">Unlock In:</p>
+        <div style="display: flex; gap: 5px; margin-bottom: 20px;" id="capsuleTimeOptions">
+            <button class="capsule-timer-btn selected" onclick="setCapsuleTime(this, 15)">15m</button>
+            <button class="capsule-timer-btn" onclick="setCapsuleTime(this, 30)">30m</button>
+            <button class="capsule-timer-btn" onclick="setCapsuleTime(this, 60)">1h</button>
+            <button class="capsule-timer-btn" onclick="setCapsuleTime(this, 720)">12h</button>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-accept" style="background: #aad052; color: white;" onclick="dispatchTimeCapsule()">🔒 Lock & Send</button>
+            <button class="btn-decline" onclick="document.getElementById('capsuleCreatorModal').classList.remove('active')">Cancel</button>
+        </div>
+    </div>
+</div>
+    
+<!-- Custom App Install Prompt Modal -->
+<div id="installPromptModal" class="modal-overlay">
+    <div class="modal-box" style="text-align: center; background: #fdf8ef;">
+        <div style="font-size: 45px; margin-bottom: 10px;">✨📱</div>
+        <h3 style="margin-top: 0; color: #aad052;">Install Dipsum</h3>
+        <p style="font-size: 14px; color: #555; margin-bottom: 20px;">Get the full experience! Install Dipsum on your home screen for full-screen chatting and instant access.</p>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button id="btnInstallApp" class="sync-btn" style="background: #aad052; color: white;">📥 Install App</button>
+            <button onclick="document.getElementById('installPromptModal').classList.remove('active')" style="background: transparent; border: 1px solid #ffc8b0; padding: 10px; border-radius: 8px; color: #7a1029; font-weight: bold; cursor: pointer;">🌐 Use in Browser</button>
+        </div>
+    </div>
+</div>
+
+<!-- Time Capsule Full Screen Cinematic Reveal -->
+<div id="capsuleDisplayOverlay">
+    <div class="capsule-envelope">💌</div>
+    <div class="capsule-message-box">
+        <p style="font-size: 13px; color: #aad052; margin-top: 0; text-transform: uppercase; letter-spacing: 1px;">A Secret Letter from <br><span id="capsuleSenderName" style="font-size: 18px; color: #7a1029;"></span></p>
+        <hr style="border-top: 1px dashed #fb9fa3; margin: 15px 0;">
+        <div id="capsuleRevealedText" style="margin: 20px 0; word-break: break-word; line-height: 1.5; font-weight: normal; font-size: 16px;"></div>
+        <button class="sync-btn" style="background: #fb9fa3; width: auto; padding: 10px 24px; border-radius: 20px;" onclick="closeCapsuleOverlay()">Keep Forever ✨</button>
+    </div>
+</div>
+
+<!-- Custom Action Confirmation Modal -->
+<div id="actionConfirmModal" class="modal-overlay">
+    <div class="modal-box">
+        <div style="font-size: 35px; margin-bottom: 10px;" id="actionConfirmIcon">⚠️</div>
+        <h3 style="margin: 0 0 10px 0; color: #7a1029;" id="actionConfirmTitle">Confirm Action</h3>
+        <p style="margin: 0 0 20px 0; font-size: 14px; color: #555;" id="actionConfirmMessage">Are you sure?</p>
+        <div class="modal-actions">
+            <button class="btn-decline" onclick="executeConfirmedAction(true)" style="background: #e11d48; color: white;" id="actionConfirmBtn">Yes, Do it</button>
+            <button class="btn-accept" onclick="executeConfirmedAction(false)" style="background: #94a3b8; color: white;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div id="forgotPasswordModal" class="modal-overlay">
+    <div class="modal-box" style="background: #fdf8ef;">
+        <div style="font-size: 35px; margin-bottom: 10px;">🔑</div>
+        <h3 style="margin: 0 0 10px 0; color: #7a1029;">Account Recovery</h3>
+        <p style="margin: 0 0 20px 0; font-size: 13px; color: #555;">Enter your Username and your unique Recovery #ID to reset your password.</p>
+        
+        <input type="text" id="recoverUsernameInput" placeholder="Enter Username" class="login-field" style="margin-bottom: 8px; color: #334155; background: white; border: 1px solid #aad052;">
+        <input type="text" id="recoverIdInput" placeholder="Enter #ID (e.g. #A1B2C)" class="login-field" style="margin-bottom: 20px; color: #334155; background: white; border: 1px solid #aad052;">
+        
+        <div class="modal-actions">
+            <button class="btn-accept" onclick="submitPasswordRecovery()" style="background: #aad052; color: white;">Recover</button>
+            <button class="btn-decline" onclick="closeForgotPasswordModal()" style="background: #94a3b8; color: white;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Terms and Conditions Modal -->
+<div id="termsModal" class="modal-overlay">
+    <div class="modal-box" style="width: 400px; max-width: 90%; background: #fdf8ef;">
+        <h3 style="margin: 0 0 15px 0; color: #7a1029;">📜 Terms & Conditions</h3>
+        <div style="background: white; border: 1px solid #e6c7c3; padding: 15px; border-radius: 8px; height: 250px; overflow-y: auto; text-align: left; font-size: 12px; color: #334155; line-height: 1.5; margin-bottom: 20px;">
+            <p><strong>1. Acceptance of Terms:</strong> By creating an account on Dipsum, you agree to abide by these terms. If you do not agree, do not use the service.</p>
+            <p><strong>2. User Conduct:</strong> You agree not to use this service to transmit any unlawful, harassing, abusive, threatening, harmful, or objectionable material. The administrator reserves the right to terminate accounts violating this rule without notice.</p>
+            <p><strong>3. Privacy & Security:</strong> While Dipsum employs end-to-end encryption for specific messages, you are solely responsible for maintaining the confidentiality of your account, password, and Recovery ID.</p>
+            <p><strong>4. Disclaimer of Warranties:</strong> This service is provided "as is" without any warranties. The creator is not responsible for any data loss, server downtime, or compromised messages.</p>
+            <p><strong>5. Data Retention:</strong> The server actively automatically clears old data to maintain performance. You acknowledge that your data is not guaranteed to be stored indefinitely.</p>
+            <p><strong>6. Liability:</strong> Under no circumstances shall the developer of Dipsum be liable for any direct, indirect, incidental, or consequential damages resulting from the use or inability to use the service.</p>
+        </div>
+        <button class="sync-btn" style="background: #aad052; color: white;" onclick="document.getElementById('termsModal').classList.remove('active')">Close & Continue</button>
+    </div>
+</div>
+
+<!-- The 'Interrupt' Steamy Handprint Overlay -->
+<div id="interruptOverlay" class="interrupt-steamy-glass">
+    <img id="interruptAvatarImg" src="boy.png" alt="Interrupt" class="interrupt-pop-image">
+</div>
+    
+<script>
+    const backendBaseUrl = 'https://myfirstwebapp-production-82df.up.railway.app';
+    let totalUnreadMessagesTracked = 0;
+    const backgroundChime = new Audio('tune1.mp3'); 
+    const activeChatChime = new Audio('tune2.mp3'); 
+    let refreshLoop = null, currentInviteSender = null, isSignUpMode = false, activeChatTarget = null, currentLoadedMessageCount = 0, typingTimer, lastSyncPayload = ""; 
+
+    // --- NEW: DIRECTORY TAB LOGIC WITH LATENCY MANAGEMENT ---
+    let currentDirectoryTab = 'connected';
+
+    function switchDirectoryTab(tab) {
+        if (currentDirectoryTab === tab) return; // Prevent animation if tapping the same tab twice
+
+        currentDirectoryTab = tab;
+        const btnConnected = document.getElementById('tabConnectedBtn');
+        const btnNew = document.getElementById('tabNewBtn');
+        const listContainer = document.getElementById('userListContainer');
+        
+        if (tab === 'connected') {
+            btnConnected.style.background = '#fb9fa3'; btnConnected.style.color = 'white';
+            btnNew.style.background = 'transparent'; btnNew.style.color = '#7a1029';
+        } else {
+            btnNew.style.background = '#fb9fa3'; btnNew.style.color = 'white';
+            btnConnected.style.background = 'transparent'; btnConnected.style.color = '#7a1029';
+        }
+        
+        // 1. Trigger the fade-out and slide-down animation
+        if (listContainer) listContainer.classList.add('tab-switching');
+        
+        // 2. Wait 200ms for fade out, then ask the server for data and WAIT for it
+        setTimeout(() => {
+            // Passing 'true' tells syncCycle to forcefully redraw the UI
+            const syncPromise = syncCycle(true);
+            if (syncPromise) {
+                syncPromise.then(() => {
+                    // Only fade back in AFTER the new data is fully drawn on screen!
+                    if (listContainer) listContainer.classList.remove('tab-switching');
+                }).catch(() => {
+                    // Fallback just in case the network fails
+                    if (listContainer) listContainer.classList.remove('tab-switching');
+                });
+            } else {
+                if (listContainer) listContainer.classList.remove('tab-switching');
+            }
+        }, 200);
+    }
+    
+    // --- E2EE SCRAMBLER ENGINE (EMOJI SAFE) ---
+    function encryptE2E(text, key) {
+        let result = '';
+        const encoded = unescape(encodeURIComponent(text));
+        for(let i=0; i<encoded.length; i++) {
+            // The % 256 keeps the math safely under Javascript's limit!
+            let cipherByte = (encoded.charCodeAt(i) + key.charCodeAt(i % key.length)) % 256;
+            result += String.fromCharCode(cipherByte);
+        }
+        return "E2E::" + btoa(result);
+    }
+
+    function decryptE2E(text, key) {
+        if(!text.startsWith("E2E::")) return text;
+        try {
+            let raw = atob(text.substring(5));
+            let result = '';
+            for(let i=0; i<raw.length; i++) {
+                let plainByte = (raw.charCodeAt(i) - key.charCodeAt(i % key.length)) % 256;
+                if (plainByte < 0) plainByte += 256; // Fix for negative numbers
+                result += String.fromCharCode(plainByte);
+            }
+            return decodeURIComponent(escape(result));
+        } catch(e) { return "🔐 [Encrypted Message]"; }
+    }
+    
+    window.addEventListener('DOMContentLoaded', () => {
+        const savedSessionUser = localStorage.getItem('dipsum_logged_user');
+        if (savedSessionUser && savedSessionUser.trim() !== "") {
+            document.getElementById('loginCard').style.display = 'none';
+            document.getElementById('chatLounge').style.display = 'flex';
+            document.getElementById('currentProfileName').innerText = savedSessionUser.toLowerCase();
+            
+            // Safely start sync without crashing
+            try { startAppSynchronization(); } catch(e) { console.error(e); }
+            
+            // Safely check for push notifications without triggering false errors
+            try {
+                if (typeof setupPushNotifications === 'function') {
+                    setupPushNotifications(savedSessionUser.toLowerCase());
+                }
+            } catch(e) { console.error("Push notification setup skipped."); }
+        }
+        
+        // 1. Check Memory on Load for Dark Mode
+        if (localStorage.getItem('dipsum_dark_mode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+    });
+    
+    function toggleAuthMode() {
+        isSignUpMode = !isSignUpMode;
+        document.getElementById('authTitle').innerText = isSignUpMode ? "Create New Account" : "Your Secure Chat Portal";
+        document.getElementById('authDescription').innerText = isSignUpMode ? "Sign up below to register your enterprise account." : "Sign in to access your dashboard lounge.";
+        document.getElementById('authBtn').innerText = isSignUpMode ? "Register & Join" : "Access Account";
+        document.getElementById('toggleText').innerText = isSignUpMode ? "Already have an account?" : "Need an account?";
+        document.getElementById('toggleLink').innerText = isSignUpMode ? "Log In here" : "Create one here";
+        
+        // Hide "Forgot Password" and Show "T&C Checkbox" during Sign Up
+        document.getElementById('forgotPassBtn').style.display = isSignUpMode ? 'none' : 'block';
+        document.getElementById('tncContainer').style.display = isSignUpMode ? 'flex' : 'none';
+    }
+
+    function handleAuthSubmit() {
+        const user = document.getElementById('usernameInput').value.trim();
+        const pass = document.getElementById('passwordInput').value.trim();
+        if (!user || !pass) return displaySystemAlert("Missing Info", "Fill both fields.", "🚫");
+
+        // NEW: Enforce Terms and Conditions
+        if (isSignUpMode && !document.getElementById('tncCheckbox').checked) {
+            return displaySystemAlert("Agreement Required", "You must read and agree to the Terms & Conditions to create an account.", "📜");
+        }
+
+        const btn = document.getElementById('authBtn');
+        if (btn.disabled) return; 
+        
+        const initialText = btn.innerText;
+        btn.innerText = "Processing...";
+        btn.disabled = true; 
+
+        let targetUrl = `${backendBaseUrl}/api/${isSignUpMode ? 'register' : 'login'}?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`;
+        
+        fetch(targetUrl)
+            .then(res => {
+                if (!res.ok) throw new Error("Network Response Error");
+                return res.text();
+            })
+            .then(data => {
+                btn.innerText = initialText;
+                btn.disabled = false; 
+                
+                if (data.startsWith("SUCCESS")) {
+                    document.getElementById('systemAlertModal').classList.remove('active'); 
+                    if (isSignUpMode) {
+                        displaySystemAlert("Success", "Account created!", "✨");
+                        toggleAuthMode();
+                        document.getElementById('tncCheckbox').checked = false; // Reset checkbox
+                    } else {
+                        localStorage.setItem('dipsum_logged_user', user.toLowerCase());
+                        document.getElementById('loginCard').style.display = 'none';
+                        document.getElementById('chatLounge').style.display = 'flex';
+                        document.getElementById('currentProfileName').innerText = user.toLowerCase();
+                        
+                        try { startAppSynchronization(); } catch (e) { console.error(e); }
+                        try { 
+                            if (typeof setupPushNotifications === 'function') {
+                                setupPushNotifications(user.toLowerCase()); 
+                            }
+                        } catch (e) { console.error("Push notification setup skipped."); }
+                    }
+                } else {
+                    displaySystemAlert("Failure", data, "❌");
+                }
+            })
+            .catch((error) => {
+                console.error("Login Error:", error);
+                btn.innerText = initialText;
+                btn.disabled = false; 
+                displaySystemAlert("Offline", "Could not connect to backend.", "📡");
+            });
+    }
+
+    // --- BOLD FEATURE: THE INTERRUPT LOGIC ---
+    let interruptTimer; // Tracks the 3-second auto-close
+
+    function triggerLocalInterrupt(avatarChoice) {
+        const overlay = document.getElementById('interruptOverlay');
+        const imgTag = document.getElementById('interruptAvatarImg');
+        
+        // Set the image dynamically based on the payload!
+        imgTag.src = avatarChoice === 'girl' ? 'girl.png' : 'boy.png';
+        
+        overlay.classList.add('active');
+        
+        // Re-trigger CSS animation by resetting the element
+        imgTag.style.animation = 'none';
+        void imgTag.offsetWidth; 
+        imgTag.style.animation = 'avatarPopIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
+
+        if (navigator.vibrate) navigator.vibrate([200, 100, 400]); // Custom bold vibration pattern
+        
+        clearTimeout(interruptTimer);
+        interruptTimer = setTimeout(() => {
+            overlay.classList.remove('active'); 
+        }, 3000); 
+    }
+
+    function executeAppLogout() {
+        localStorage.removeItem('dipsum_logged_user');
+        if (refreshLoop) clearInterval(refreshLoop);
+        window.location.reload();
+    }
+
+    function startAppSynchronization() {
+        syncCycle();
+        refreshLoop = setInterval(syncCycle, 2000); 
+        fetchAndDisplayRecoveryId();
+    }
+
+    function syncCycle(forceRender = false) {
+        const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+
+        // 1. Check for active messages
+        if (activeChatTarget) {
+            fetchActiveChatMessages(user, activeChatTarget);
+        }
+
+        // 2. Check for incoming invites (This was previously blocked by the return statement!)
+        fetch(`${backendBaseUrl}/api/checkInvites?user=${encodeURIComponent(user)}`).then(res => res.text()).then(response => {
+            const modal = document.getElementById('inviteModal');
+            if (response.startsWith("PENDING:")) {
+                currentInviteSender = response.split(":")[1];
+                if(!modal.classList.contains('active')) {
+                    document.getElementById('modalMessage').innerHTML = `<b>${capitalizeFirstLetter(currentInviteSender)}</b> wants to chat.`;
+                    modal.classList.add('active');
+                }
+            }
+        });
+
+        // 3. Sync the main directory and return the promise for the tab animation
+        return fetch(`${backendBaseUrl}/api/users?viewer=${encodeURIComponent(user)}`)
+            .then(res => res.text())
+            .then(rawText => {
+                if(!rawText || rawText.trim() === "") return;
+
+                let dataChanged = (rawText !== lastSyncPayload) || forceRender;
+                lastSyncPayload = rawText;
+
+                const payloadParts = rawText.split('|||');
+                const usersData = payloadParts[0];
+                const activeStatuses = (payloadParts[1] && payloadParts[1].trim() !== "") ? payloadParts[1].split(',') : [];
+
+                let currentCycleUnreadSum = 0; 
+
+                if (dataChanged) {
+                    const listContainer = document.getElementById('userListContainer');
+                    if (listContainer) listContainer.innerHTML = "";
+                    
+                    usersData.split('$$$').forEach(userToken => {
+                        if (!userToken || userToken.trim() === "") return;
+                        const parts = userToken.split('###');
+                        if (parts.length < 5) return;
+
+                        const targetUser = parts[0].trim();
+                        const cleanName = targetUser.toLowerCase();
+                        const isOnline = parts[1].trim() === "true";
+                        const unreadCount = parseInt(parts[2].trim(), 10);
+                        const relationshipStatus = parts[3].trim();
+                        
+                        let customAvatarPic = parts[4] && parts[4].trim() !== "NONE" ? parts[4].trim() : "NONE";
+                        if (customAvatarPic !== "NONE" && !customAvatarPic.startsWith("data:") && !customAvatarPic.startsWith("http")) {
+                            customAvatarPic = "data:image/jpeg;base64," + customAvatarPic;
+                        }
+
+                        if (cleanName !== activeChatTarget) currentCycleUnreadSum += unreadCount;
+
+                        if(cleanName === user) {
+                            const myAvatarElement = document.getElementById('myProfileAvatarElement');
+                            if (myAvatarElement) {
+                                myAvatarElement.innerHTML = customAvatarPic !== "NONE" ? `<img src="${customAvatarPic}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : user.charAt(0).toUpperCase();
+                                
+                                if(activeStatuses.includes(user)) {
+                                    myAvatarElement.classList.add('moment-ring');
+                                    myAvatarElement.onclick = () => viewMoment(user);
+                                } else {
+                                    myAvatarElement.classList.remove('moment-ring');
+                                    myAvatarElement.onclick = () => document.getElementById('userProfilePicUploader').click();
+                                }
+                            }
+                            return;
+                        }
+
+                        if (cleanName === activeChatTarget) updateHeaderUserStatusIndicator(isOnline);
+
+                        // --- TAB FILTERING LOGIC ---
+                        let shouldRender = false;
+                        if (currentDirectoryTab === 'connected' && relationshipStatus === "CONNECTED") shouldRender = true;
+                        if (currentDirectoryTab === 'new' && relationshipStatus !== "CONNECTED") shouldRender = true;
+                        
+                        if (!shouldRender) return; 
+
+                        const row = document.createElement('div');
+                        row.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #febeba; padding: 10px; border-radius: 8px; cursor: pointer;";
+                        row.dataset.avatarData = customAvatarPic;
+                        
+                        if (relationshipStatus === "CONNECTED") {
+                            row.onclick = () => openTargetChatWindow(cleanName);
+                        } else {
+                            row.style.cursor = "default";
+                        }
+
+                        const ringClass = activeStatuses.includes(cleanName) ? "moment-ring" : "";
+                        const statusClass = isOnline ? "status-online" : "status-offline";
+                        let unreadBadgeHtml = unreadCount > 0 ? `<span class="unread-badge">${unreadCount}</span>` : "";
+
+                        let dpContentHtml = customAvatarPic !== "NONE" 
+                            ? `<img src="${customAvatarPic}" onclick="event.stopPropagation(); if('${ringClass}') viewMoment('${cleanName}')" class="sidebar-dp-avatar ${ringClass}" style="width: 40px; height: 40px; object-fit: cover; margin-right: 10px;">` 
+                            : `<div onclick="event.stopPropagation(); if('${ringClass}') viewMoment('${cleanName}')" class="sidebar-dp-avatar ${ringClass}" style="background:#334155; color:#94a3b8; width:40px; height:40px; margin-right:10px;">${targetUser.charAt(0).toUpperCase()}</div>`;
+
+                        let actionComponentHtml = relationshipStatus === "CONNECTED" ? `<span style="color: #22c55e; font-weight: 600; font-size: 14px; padding: 6px 12px;">✓ Connected</span>` 
+                            : (relationshipStatus === "PENDING" ? `<button style="background:#febeb9; border:none; color:#9c2e24; padding:6px 12px; border-radius:4px; font-weight:600;" disabled onclick="event.stopPropagation();">Waiting...</button>` 
+                            : `<button style="background:#febeb9; border:none; color:#9c2e24; padding:6px 12px; border-radius:4px; font-weight:600; cursor:pointer;" onclick="event.stopPropagation(); sendChatInvite('${cleanName}')">Invite</button>`);
+
+                        let deleteBtnHtml = (user === "help" && cleanName !== "help") 
+                            ? `<button style="background:none; border:none; color:#9c2e24; font-size:18px; cursor:pointer; margin-left:4px;" onclick="event.stopPropagation(); deleteUserAccount('${cleanName}')" title="Delete User">🗑️</button>` : "";
+
+                        row.innerHTML = `<div style="display: flex; align-items: center; position: relative;"><span class="status-dot ${statusClass}" style="position: absolute; bottom: 0; left: 28px; z-index: 10; border: 2px solid #334155;"></span>${dpContentHtml}<span style="font-weight: 500; color: #334155;">${capitalizeFirstLetter(targetUser)}</span>${unreadBadgeHtml}</div><div style="display:flex; align-items:center;">${actionComponentHtml}${deleteBtnHtml}</div>`;
+                        if (listContainer) listContainer.appendChild(row);
+                    });
+                } else {
+                    usersData.split('$$$').forEach(userToken => {
+                        if (!userToken || userToken.trim() === "") return;
+                        const parts = userToken.split('###');
+                        if (parts.length < 5) return;
+                        const cleanName = parts[0].trim().toLowerCase();
+                        const unreadCount = parseInt(parts[2].trim(), 10);
+                        if (cleanName !== activeChatTarget && cleanName !== user) currentCycleUnreadSum += unreadCount;
+                    });
+                }
+
+                if (currentCycleUnreadSum > totalUnreadMessagesTracked) backgroundChime.play().catch(()=>{});
+                totalUnreadMessagesTracked = currentCycleUnreadSum;
+            });
+    }
+    
+
+    // --- MOMENTS ENGINE ---
+    function openMomentCreator() {
+        const listDiv = document.getElementById('momentUserChecklist');
+        listDiv.innerHTML = '';
+        const rows = document.getElementById('userListContainer').querySelectorAll('.status-dot');
+        let friendsCount = 0;
+        
+        rows.forEach(dot => {
+            const name = dot.nextElementSibling.nextElementSibling.innerText.trim();
+            if(dot.parentElement.nextElementSibling.innerText.includes("Connected")) {
+                listDiv.innerHTML += `<label style="display:block; margin-bottom:8px;"><input type="checkbox" value="${name.toLowerCase()}" class="moment-target-cb" checked> ${capitalizeFirstLetter(name)}</label>`;
+                friendsCount++;
+            }
+        });
+        
+        if (friendsCount === 0) {
+            listDiv.innerHTML = "<p style='font-size:12px; color:red;'>You need connected friends to broadcast!</p>";
+        } else {
+            listDiv.innerHTML = `<label style="display:block; margin-bottom:8px; font-weight:bold; border-bottom:1px solid #eee; padding-bottom:5px;"><input type="checkbox" id="momentSelectAll" checked onchange="toggleAllMomentChecks(this)"> Select All</label>` + listDiv.innerHTML;
+        }
+        document.getElementById('momentCreatorModal').classList.add('active');
+    }
+
+    function toggleAllMomentChecks(master) {
+        document.querySelectorAll('.moment-target-cb').forEach(cb => cb.checked = master.checked);
+    }
+
+    function processMomentUpload(fileInput) {
+        if (!fileInput.files || !fileInput.files[0]) return;
+        
+        const boxes = Array.from(document.querySelectorAll('.moment-target-cb:checked')).map(cb => cb.value);
+        if(boxes.length === 0) return alert("Select at least one person to share with!");
+        const targets = boxes.join(",");
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                let w = img.width, h = img.height;
+                if (w > h && w > 800) { h *= 800/w; w = 800; } 
+                else if (h > 800) { w *= 800/h; h = 800; }
+                canvas.width = w; canvas.height = h;
+                ctx.drawImage(img, 0, 0, w, h);
+                const b64 = canvas.toDataURL('image/jpeg', 0.8);
+                
+                const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+                fetch(`${backendBaseUrl}/api/uploadMoment?from=${encodeURIComponent(user)}&targets=${encodeURIComponent(targets)}`, {
+                    method: 'POST', body: b64
+                }).then(() => {
+                    fileInput.value = "";
+                    document.getElementById('momentCreatorModal').classList.remove('active');
+                    syncCycle();
+                });
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+    }
+
+    let activeMomentAuthor = "";
+    function viewMoment(author) {
+        const currentUser = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+        fetch(`${backendBaseUrl}/api/viewMoment?author=${encodeURIComponent(author)}`).then(res=>res.text()).then(payload => {
+            if(payload !== "NONE") {
+                activeMomentAuthor = author;
+                document.getElementById('momentViewerAuthor').innerText = `${capitalizeFirstLetter(author)}'s Moment`;
+                document.getElementById('momentViewerImage').src = payload;
+                document.getElementById('momentViewerOverlay').style.display = 'flex';
+                document.getElementById('momentReplyBar').style.display = (author === currentUser) ? 'none' : 'flex';
+            }
+        });
+    }
+
+    function closeMomentViewer() {
+        document.getElementById('momentViewerOverlay').style.display = 'none';
+        document.getElementById('momentViewerImage').src = '';
+        activeMomentAuthor = "";
+    }
+
+    function dispatchMomentReply() {
+        const replyText = document.getElementById('momentReplyInput').value.trim();
+        if(!replyText || !activeMomentAuthor) return;
+        const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+        
+        let roomKey = [user, activeMomentAuthor].sort().join('#');
+        
+        // --- FIX: Wrap the reply tag BEFORE encrypting the payload ---
+        let rawMessage = `[REPLY]📢 Moment Broadcast[/REPLY]` + replyText;
+        let securePayload = encryptE2E(rawMessage, roomKey);
+
+        fetch(`${backendBaseUrl}/api/sendMessage?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeMomentAuthor)}`, {
+            method: 'POST', headers: {'Content-Type': 'text/plain'}, body: securePayload
+        }).then(() => {
+            document.getElementById('momentReplyInput').value = "";
+            closeMomentViewer();
+            if(activeChatTarget !== activeMomentAuthor) openTargetChatWindow(activeMomentAuthor);
+            else fetchActiveChatMessages(user, activeChatTarget);
+        });
+    }
+
+    function sendChatInvite(targetUsername) {
+        const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+        fetch(`${backendBaseUrl}/api/sendInvite?from=${encodeURIComponent(user)}&to=${encodeURIComponent(targetUsername)}`).then(res => res.text()).then(r => {
+            if (r.trim() === "SUCCESS") syncCycle();
+        });
+    }
+
+    function submitInviteResponse(isAccepted) {
+        const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+        document.getElementById('inviteModal').classList.remove('active');
+        fetch(`${backendBaseUrl}/api/respondInvite?user=${encodeURIComponent(user)}&action=${isAccepted?'accept':'decline'}`).then(()=>syncCycle());
+    }
+
+    function openTargetChatWindow(targetUsername) {
+        const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+        let activeUserRows = Array.from(document.getElementById('userListContainer').children);
+        let matchedRow = activeUserRows.find(row => row.innerHTML.toLowerCase().includes(targetUsername));
+        let activeChatAvatarPayload = (matchedRow && matchedRow.dataset.avatarData) ? matchedRow.dataset.avatarData : "NONE";
+
+        let isTargetOnline = false;
+        if (matchedRow) {
+            const statusDot = matchedRow.querySelector('.status-dot');
+            if (statusDot && statusDot.classList.contains('status-online')) isTargetOnline = true;
+        }
+
+        fetch(`${backendBaseUrl}/api/checkConnection?user1=${encodeURIComponent(user)}&user2=${encodeURIComponent(targetUsername)}`)
+            .then(res => res.text()).then(isAllowed => {
+                if (isAllowed.trim() === "TRUE") {
+                    currentLoadedMessageCount = 0;
+                    activeChatTarget = targetUsername;
+                    cancelReply(); 
+
+                    let loungeMain = document.querySelector('.lounge-main');
+                    if (!loungeMain) return;
+
+                    let headerAvatarHtml = activeChatAvatarPayload !== "NONE" 
+                        ? `<img src="${activeChatAvatarPayload}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; margin-right:12px;">` 
+                        : `<div class="header-dp-avatar" style="margin-right:12px; background:#2563eb; color:white; font-weight:bold; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;">${targetUsername.charAt(0).toUpperCase()}</div>`;
+
+                    const initialStatusIconHtml = isTargetOnline ? `<img src="online.png" class="status-round-indicator online">` : `<img src="offline.png" class="status-round-indicator offline">`;
+
+                    loungeMain.innerHTML = `
+                <style>
+                    @keyframes pawBounce { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(-4px); opacity: 1; } }
+                    .paw-anim { display: inline-block; animation: pawBounce 0.9s infinite ease-in-out; margin: 0 1px; }
+                    .msg-quoted { background: rgba(255,255,255,0.4); border-left: 3px solid #aad052; padding: 6px 8px; font-size: 12px; color: #555; margin-bottom: 6px; border-radius: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-style: italic; word-break: break-word; cursor: pointer; }
+                    .reply-action-btn { opacity: 0.4; cursor: pointer; font-size: 14px; margin: 0 8px; background: #fffdf5; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: all 0.2s; border: 1px solid #aad052; flex-shrink: 0; }
+                    .reply-action-btn:hover { opacity: 1; transform: scale(1.1); background: #aad052; }
+                    
+                    .msg-jumbo-emoji { font-size: 45px !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; }
+                    .emoji-grid-panel { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; background: #1e293b; border: 1px solid #aad052; padding: 15px; border-radius: 20px; position: absolute; bottom: 70px; left: 10px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15); z-index: 100; max-height: 200px; overflow-y: auto; }
+                    .emoji-grid-panel span { font-size: 26px; cursor: pointer; transition: transform 0.1s ease; text-align: center; }
+                    .emoji-grid-panel span:hover { transform: scale(1.3); }
+
+                    .sticker-drawer-panel { display: flex; gap: 8px; background: #1e293b; border: 1px solid #aad052; padding: 12px; border-radius: 20px; position: absolute; bottom: 70px; right: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15); z-index: 100; max-width: 280px; flex-wrap: wrap; justify-content: center; max-height: 220px; overflow-y: auto; }
+                    .sticker-drawer-panel img { width: 55px; height: 55px; cursor: pointer; transition: transform 0.1s ease; object-fit: contain; border-radius: 8px; }
+                    .sticker-drawer-panel img:hover { transform: scale(1.15); background: rgba(255,255,255,0.1); }
+                    .msg-bubble { word-break: break-word !important; overflow-wrap: anywhere !important; }
+                    .msg-bubble-media { max-width: 100% !important; object-fit: contain; }
+                </style>
+                <div class="chat-window-pane" style="position: relative; height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+                    <div class="chat-header-bar" style="display:flex; align-items:center; padding:10px 15px; background:#e6c7c3; border-bottom:1px solid #334155;">
+                        <button class="mobile-back-nav-btn" onclick="exitActiveMobileChatView()" style="background:none; border:none; color:#334155; font-size:30px; font-weight:bold; margin-right:15px; cursor:pointer; padding:5px 0; display:none;">❮</button>
+                        ${headerAvatarHtml}
+                        <div class="header-meta-box">
+                            <div class="header-profile-title" style="color:#334155; font-weight:bold; font-size:16px; line-height: 1.2;">${capitalizeFirstLetter(targetUsername)}</div>
+                            <div id="userStatusWrapper" class="status-round-container">${initialStatusIconHtml}</div>
+                        </div>
+                        
+                        <div id="loungePetContainer" style="margin-left: 15px; font-size: 22px; transition: transform 0.3s; cursor: pointer;" title="Lounge Pet">💤🧸</div>
+                        
+                        <div onclick="sendInterrupt()" style="margin-left: 15px; font-size: 22px; cursor: pointer; transition: transform 0.2s; filter: drop-shadow(0 0 5px rgba(245,158,11,0.5));" title="Interrupt Partner" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">🔥</div>
+
+                        <div style="margin-left: auto; display: flex; align-items: center; gap: 4px; font-size: 11px; color: #15803d; background: #dcfce7; padding: 4px 8px; border-radius: 12px; font-weight: 600; animation: pulseGlow 3s infinite;">
+                            <span>🔐</span> E2E Encrypted
+                        </div>
+                    </div>
+
+                    <div class="chat-log-display" id="chatLogDisplay" onscroll="handleChatLogScroll()" style="flex:1; padding:20px; overflow-y:auto; overflow-x:hidden; width: 100%; box-sizing: border-box;"></div>
+
+                    <button id="scrollToBottomFloatingBtn" class="scroll-bottom-btn" onclick="snapChatToBottom()">▼</button>
+
+                    <div id="typingIndicatorContainer" style="display:none; background: #e6c7c3; padding: 4px 20px; font-size: 13px; color: #961808; text-align: left; border-top: 1px solid #aad052;">
+                        <i>${capitalizeFirstLetter(targetUsername)} is typing</i> <span class="paw-anim" style="animation-delay: 0s;">🐾</span><span class="paw-anim" style="animation-delay: 0.2s;">🐾</span><span class="paw-anim" style="animation-delay: 0.4s;">🐾</span>
+                    </div>
+
+                    <div id="emojiMiniDrawer" class="emoji-grid-panel" style="display: none;">
+                        <span onclick="injectEmojiToken('😀')">😀</span><span onclick="injectEmojiToken('😂')">😂</span><span onclick="injectEmojiToken('🥰')">🥰</span>
+                        <span onclick="injectEmojiToken('😍')">😍</span><span onclick="injectEmojiToken('😘')">😘</span><span onclick="injectEmojiToken('🥺')">🥺</span>
+                        <span onclick="injectEmojiToken('😭')">😭</span><span onclick="injectEmojiToken('😤')">😤</span><span onclick="injectEmojiToken('😡')">😡</span>
+                        <span onclick="injectEmojiToken('❤️')">❤️</span><span onclick="injectEmojiToken('💖')">💖</span><span onclick="injectEmojiToken('💔')">💔</span>
+                        <span onclick="injectEmojiToken('✨')">✨</span><span onclick="injectEmojiToken('🔥')">🔥</span><span onclick="injectEmojiToken('👍')">👍</span>
+                        <span onclick="injectEmojiToken('👎')">👎</span><span onclick="injectEmojiToken('🙏')">🙏</span><span onclick="injectEmojiToken('🌹')">🌹</span>
+                        <span onclick="injectEmojiToken('🧸')">🧸</span><span onclick="injectEmojiToken('💍')">💍</span><span onclick="injectEmojiToken('🎉')">🎉</span>
+                        <span onclick="injectEmojiToken('👀')">👀</span><span onclick="injectEmojiToken('🥱')">🥱</span><span onclick="injectEmojiToken('😴')">😴</span>
+                    </div>
+
+                    <div id="stickerMiniDrawer" class="sticker-drawer-panel" style="display: none;">
+                        ${stickerCollection.map(s => `<img src="stickers/${s}" onclick="sendSticker('${s}')">`).join('')}
+                    </div>
+
+                    <div id="activeReplyBanner" style="display: none; background: #fdf8ef; padding: 8px 12px; border-left: 4px solid #aad052; font-size: 13px; color: #334155; position: relative; border-top: 1px solid #edbdb7; z-index: 10;">
+                        <span style="font-weight:bold; color:#aad052; font-size: 12px;">Replying to:</span>
+                        <div id="replyBannerText" style="margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%; opacity: 0.8; font-style: italic;"></div>
+                        <span onclick="cancelReply()" style="position: absolute; right: 10px; top: 8px; cursor: pointer; color: #961808; font-weight: bold; padding: 4px; font-size: 16px;">✕</span>
+                    </div>
+
+                    <div id="chatFooterBar" class="chat-footer-input-bar" style="display:flex; align-items:flex-end; gap:4px; padding:10px 6px; background:#e6c7c3; border-top:1px solid #edbdb7; width: 100%; box-sizing: border-box; transition: all 0.3s ease;">
+                        <input type="file" id="chatMediaSelectorInput" accept="image/*" style="display:none;" onchange="processMediaFileTransmission(this)">
+                        
+                        <button class="tool-action-btn hide-on-type" style="background:none; border:none; font-size:22px; cursor:pointer; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 2px; flex-shrink: 0;" title="Send Image" onclick="document.getElementById('chatMediaSelectorInput').click()">🖼️</button>
+                        
+                        <button class="tool-action-btn" style="background:none; border:none; font-size:22px; cursor:pointer; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 2px; flex-shrink: 0;" title="Insert Emoji" onclick="toggleEmojiDrawerOverlay()">😊</button>
+                        
+                        <button class="tool-action-btn hide-on-type" style="background:none; border:none; font-size:22px; cursor:pointer; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 2px; flex-shrink: 0;" title="Send Sticker" onclick="toggleStickerDrawerOverlay()">🐶</button>
+                        <button class="tool-action-btn hide-on-type" style="background:none; border:none; font-size:22px; cursor:pointer; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 2px; flex-shrink: 0;" title="Time Capsule" onclick="openCapsuleModal()">⏳</button>
+                        <button class="tool-action-btn hide-on-type" style="background:none; border:none; font-size:22px; cursor:pointer; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 2px; flex-shrink: 0;" title="Thinking of You" onclick="sendHeartbeat()">💖</button>
+
+                        <textarea id="msgInputField" placeholder="Type here..." rows="1" style="flex: 1 !important; min-width: 0 !important; background:#e6c7c3; border:1px solid #334155; color:#961808; padding:10px 12px; border-radius:8px; font-size:15px; outline:none; resize:none; max-height:120px; height:42px; box-sizing:border-box; overflow-y:auto; font-family:inherit; line-height:1.4; transition: all 0.3s ease;" onkeydown="handleChatKeyDown(event)" oninput="handleTypingInput(this)" onfocus="setTimeout(snapChatToBottom, 300)"></textarea>
+
+                        <button id="mobileSendBtn" class="sync-btn" style="width: 42px !important; height: 42px !important; flex-shrink: 0 !important; background: linear-gradient(135deg, #99464b 0%, #fe9a9f 100%) !important; border: none !important; color: white !important; padding: 0 !important; border-radius: 50% !important; cursor: pointer; display: inline-flex !important; align-items: center !important; justify-content: center !important; margin-bottom: 2px;" onclick="triggerMessageDispatch()"><span style="display: inline-block; transform: rotate(-45deg); font-size: 25px; line-height: 1; margin-left: 1px; margin-top: -3px; pointer-events: none;">➤</span></button>
+                    </div>
+                </div>`;
+
+                    if(window.innerWidth <= 768) {
+                        const backBtn = loungeMain.querySelector('.mobile-back-nav-btn');
+                        if(backBtn) backBtn.style.setProperty('display', 'block', 'important');
+                    }
+                    document.body.classList.add('mobile-chat-view-engaged');
+                    fetchActiveChatMessages(user, targetUsername);
+                } else displaySystemAlert("Violation", `No active secure transmission channel.`, "🔒");
+            });
+    }   
+
+    function fetchActiveChatMessages(currentUser, targetUser) {
+        fetch(`${backendBaseUrl}/api/getMessages?from=${encodeURIComponent(currentUser)}&to=${encodeURIComponent(targetUser)}`)
+            .then(res => res.text()).then(data => {
+                const logBox = document.getElementById('chatLogDisplay');
+                if(!logBox) return;
+                if(!data || data.trim() === "") { logBox.innerHTML = ""; currentLoadedMessageCount = 0; return; }
+
+                const incomingTokensRaw = data.split('\n');
+                const metaToken = incomingTokensRaw.pop(); 
+                const [metaTag, isTypingStr, unreadCountStr] = metaToken.split('::');
+
+                const typingBox = document.getElementById('typingIndicatorContainer');
+                if (typingBox) typingBox.style.display = (isTypingStr === 'true') ? 'block' : 'none';
+
+                const incomingMessageTokens = incomingTokensRaw.filter(t => t.trim() !== "");
+                let isScrolledToBottom = logBox.scrollHeight - logBox.clientHeight <= logBox.scrollTop + 60;
+                let isInitialLoad = (currentLoadedMessageCount === 0);
+                if (isInitialLoad) logBox.innerHTML = "";
+
+                let roomKey = [currentUser, targetUser].sort().join('#'); 
+
+                let todayMsgCount = 0;
+                const todayStart = new Date().setHours(0,0,0,0);
+                incomingMessageTokens.forEach(token => {
+                    const timeSplitIdx = token.lastIndexOf("|~|");
+                    if (timeSplitIdx !== -1) {
+                        const ts = parseInt(token.substring(timeSplitIdx + 3), 10);
+                        if (ts >= todayStart) todayMsgCount++;
+                    }
+                });
+
+                const pet = document.getElementById('loungePetContainer');
+                if (pet) {
+                    if (todayMsgCount > 15) { pet.innerText = "✨🧸✨"; pet.title = "Lounge Pet is very happy!"; } 
+                    else if (todayMsgCount > 2) { pet.innerText = "🧸💭"; pet.title = "Lounge Pet is waking up."; } 
+                    else { pet.innerText = "💤🧸"; pet.title = "Lounge Pet is sleeping. Chat to wake it up!"; }
+                }
+
+                if (incomingMessageTokens.length > currentLoadedMessageCount) {
+                    const newPacketsToAppend = incomingMessageTokens.slice(currentLoadedMessageCount);
+                    let hasFreshIncomingMessage = false;
+                    let triggeredHeartbeatThisCycle = false;
+
+                    newPacketsToAppend.forEach(msgToken => {
+                        const separatorIndex = msgToken.indexOf(':');
+                        if (separatorIndex === -1) return;
+
+                        const sender = msgToken.substring(0, separatorIndex);
+                        let text = msgToken.substring(separatorIndex + 1);
+
+                        let timeStringFormatted = "";
+                        let timestampMs = 0;
+                        const timeSplitIdx = text.lastIndexOf("|~|");
+                        if (timeSplitIdx !== -1) {
+                            timestampMs = parseInt(text.substring(timeSplitIdx + 3), 10);
+                            text = text.substring(0, timeSplitIdx); 
+                            if (!isNaN(timestampMs)) {
+                                const dateObj = new Date(timestampMs);
+                                timeStringFormatted = `${dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                            }
+                        }
+
+                        text = decryptE2E(text, roomKey);
+
+                        // -- SYSTEM MESSAGE INTERCEPTS (Heartbeat & Interrupt) --
+                        let isHeartbeat = false;
+                        let isInterrupt = false;
+                        
+                        if (text.trim() === "[SYSTEM_HEARTBEAT]") {
+                            isHeartbeat = true;
+                            if (sender !== currentUser && timestampMs > 0) {
+                                let hbStorageKey = "heartbeat_played_" + timestampMs;
+                                if (!localStorage.getItem(hbStorageKey)) {
+                                    localStorage.setItem(hbStorageKey, "true");
+                                    if (!triggeredHeartbeatThisCycle) {
+                                        setTimeout(triggerHeartbeatAnimation, 500);
+                                        triggeredHeartbeatThisCycle = true;
+                                    }
+                                }
+                            }
+                        } else if (text.trim().startsWith("[SYSTEM_INTERRUPT:")) {
+                            isInterrupt = true;
+                            // Extract the 'boy' or 'girl' variable from the token
+                            let attachedAvatar = text.replace("[SYSTEM_INTERRUPT:", "").replace("]", "").trim();
+                            
+                            if (sender !== currentUser && timestampMs > 0) {
+                                let intStorageKey = "interrupt_played_" + timestampMs;
+                                if (!localStorage.getItem(intStorageKey)) {
+                                    localStorage.setItem(intStorageKey, "true");
+                                    if (!triggeredHeartbeatThisCycle) { 
+                                        setTimeout(() => triggerLocalInterrupt(attachedAvatar), 500);
+                                        triggeredHeartbeatThisCycle = true;
+                                    }
+                                }
+                            }
+                        }
+
+                        // -- Time Capsule Logic --
+                        let isCapsule = false;
+                        let capsuleIsLocked = false;
+                        const capsuleMatch = text.match(/\[CAPSULE:(\d+)\](.*)/s);
+                        if (capsuleMatch) {
+                            isCapsule = true;
+                            let unlockTime = parseInt(capsuleMatch[1], 10);
+                            let secretText = capsuleMatch[2].trim();
+                            
+                            if (Date.now() < unlockTime) {
+                                capsuleIsLocked = true;
+                                text = "⏳ Locked Time Capsule";
+                            } else {
+                                text = "✨ " + secretText;
+                                if (sender !== currentUser && timestampMs > 0) {
+                                    let storageKey = "capsule_played_" + timestampMs;
+                                    if (!localStorage.getItem(storageKey)) {
+                                        localStorage.setItem(storageKey, "true");
+                                        setTimeout(() => triggerCapsuleOverlay(sender, secretText), 500);
+                                    }
+                                }
+                            }
+                        }
+
+                        let quotedText = "";
+                        let targetMsgId = "";
+                        const replyMatch = text.match(/\[REPLY\](.*?)\[\/REPLY\]/);
+                        if (replyMatch) {
+                            quotedText = replyMatch[1];
+                            text = text.replace(replyMatch[0], "").trim();
+                            const idMatch = quotedText.match(/\[MSGID:(.*?)\]/);
+                            if (idMatch) {
+                                targetMsgId = idMatch[1];
+                                quotedText = quotedText.replace(idMatch[0], "");
+                            }
+                        }
+
+                        let stickerPath = "";
+                        const stickerMatch = text.match(/\[STICKER\](.*?)\[\/STICKER\]/);
+                        if (stickerMatch) {
+                            stickerPath = stickerMatch[1];
+                            text = text.replace(stickerMatch[0], "").trim(); 
+                        }
+
+                        let isJumboEmoji = false;
+                        if (!stickerPath && !text.startsWith("IMG_ATTACHMENT_DATA:") && !quotedText && !isHeartbeat && !isInterrupt && !isCapsule) {
+                            try {
+                                const emojiRegex = /^[\p{Extended_Pictographic}\s]+$/u;
+                                if (text.trim().length > 0 && text.length <= 20 && emojiRegex.test(text)) isJumboEmoji = true;
+                            } catch(e) {}
+                        }
+
+                        if (sender !== currentUser) hasFreshIncomingMessage = true;
+
+                        const bubbleWrapper = document.createElement('div');
+                        bubbleWrapper.style.display = 'flex'; bubbleWrapper.style.flexDirection = 'column';
+                        bubbleWrapper.className = (sender === currentUser) ? "msg-wrapper msg-outgoing-wrapper" : "msg-wrapper";
+                        bubbleWrapper.style.alignSelf = (sender === currentUser) ? "flex-end" : "flex-start";
+                        bubbleWrapper.style.maxWidth = "85%";
+                        
+                        if (timestampMs > 0) bubbleWrapper.id = "msg-" + timestampMs;
+
+                        const bubble = document.createElement('div');
+                        bubble.className = (sender === currentUser) ? "msg-bubble msg-outgoing" : "msg-bubble msg-incoming";
+                        bubble.style.maxWidth = "100%"; bubble.style.alignSelf = "stretch";
+
+                        if (isJumboEmoji) bubble.classList.add("msg-jumbo-emoji");
+                        if (capsuleIsLocked) bubble.classList.add("capsule-locked-bubble");
+
+                        if (stickerPath) {
+                            bubble.innerHTML = `<img src="${stickerPath}" class="sticker-display-img">`;
+                            bubble.style.background = "transparent"; bubble.style.padding = "0"; bubble.style.boxShadow = "none";
+                        } else if (text.startsWith("IMG_ATTACHMENT_DATA:")) {
+                            let rawBase64Source = text.replace("IMG_ATTACHMENT_DATA:", "");
+                            if (!rawBase64Source.startsWith("data:") && !rawBase64Source.startsWith("http")) rawBase64Source = "data:image/jpeg;base64," + rawBase64Source;
+                            bubble.innerHTML = `<img src="${rawBase64Source}" class="msg-bubble-media" onclick="window.open('${rawBase64Source}', '_blank')">`;
+                            bubble.style.background = "transparent"; bubble.style.padding = "0";
+                        } else { bubble.innerHTML = text; }
+
+                        if (quotedText && !isHeartbeat && !isInterrupt) {
+                            const quoteDiv = document.createElement('div');
+                            quoteDiv.className = 'msg-quoted';
+                            quoteDiv.innerText = quotedText;
+                            if (targetMsgId) quoteDiv.onclick = function(e) { e.stopPropagation(); navigateToQuotedMessage(targetMsgId); };
+                            bubble.insertBefore(quoteDiv, bubble.firstChild);
+                        }
+
+                        const bubbleRow = document.createElement('div');
+                        bubbleRow.style.display = 'flex'; bubbleRow.style.alignItems = 'center'; bubbleRow.style.maxWidth = "100%";
+
+                        if (isHeartbeat || isInterrupt) {
+                            bubbleWrapper.style.alignItems = "center";
+                            bubbleWrapper.style.alignSelf = "center";
+                            let actionText = isHeartbeat ? "💖 sent a heartbeat" : "🔥 triggered an interrupt";
+                            bubble.innerHTML = sender === currentUser ? `<i>You ${actionText}</i>` : `<i>${capitalizeFirstLetter(sender)} ${actionText}</i>`;
+                            bubble.style.background = "transparent"; bubble.style.boxShadow = "none";
+                            bubble.style.color = isHeartbeat ? "#d946ef" : "#f59e0b"; bubble.style.fontSize = "12px"; bubble.style.padding = "4px";
+                            bubbleRow.appendChild(bubble);
+                        } else {
+                            const replyBtn = document.createElement('button');
+                            replyBtn.className = 'reply-action-btn'; replyBtn.innerHTML = '↩️';
+                            let plainTextToQuote = isCapsule ? "⏳ Time Capsule" : (stickerPath ? "🐶 Sticker" : (text.startsWith("IMG_ATTACHMENT_DATA:") ? "🖼️ Image Attachment" : text));
+                            replyBtn.onclick = () => prepareReply(plainTextToQuote, bubbleWrapper.id);
+
+                            if (sender === currentUser) { bubbleRow.appendChild(replyBtn); bubbleRow.appendChild(bubble); } 
+                            else { bubbleRow.appendChild(bubble); bubbleRow.appendChild(replyBtn); }
+                        }
+
+                        bubbleWrapper.appendChild(bubbleRow);
+
+                        const metaContainer = document.createElement('div');
+                        metaContainer.style.cssText = 'display: flex; align-items: center; margin-top: 2px; padding: 0 4px;';
+                        metaContainer.style.justifyContent = (sender === currentUser) ? 'flex-end' : 'flex-start';
+                        if(isHeartbeat || isInterrupt) metaContainer.style.justifyContent = 'center';
+
+                        const timeSpan = document.createElement('span');
+                        timeSpan.style.cssText = 'font-size: 10px; color: #7a1029; opacity: 0.7; font-weight: 500; margin-right: 5px;';
+                        timeSpan.innerText = timeStringFormatted;
+                        metaContainer.appendChild(timeSpan);
+
+                        if (sender === currentUser) {
+                            const pawSpan = document.createElement('span');
+                            pawSpan.className = 'msg-receipt-paw';
+                            pawSpan.style.cssText = 'font-size: 11px; opacity: 0.8;';
+                            pawSpan.innerText = '🐾'; 
+                            metaContainer.appendChild(pawSpan);
+                        }
+
+                        bubbleWrapper.appendChild(metaContainer);
+                        logBox.appendChild(bubbleWrapper);
+                    });
+
+                    if (hasFreshIncomingMessage && currentLoadedMessageCount > 0) activeChatChime.play().catch(()=>{});
+                    currentLoadedMessageCount = incomingMessageTokens.length;
+                }
+
+                if (incomingMessageTokens.length > 0) {
+                    const allOutWrappers = logBox.querySelectorAll('.msg-outgoing-wrapper');
+                    const unreadByTarget = parseInt(unreadCountStr) || 0;
+                    allOutWrappers.forEach((wrapper, index) => {
+                        const receipt = wrapper.querySelector('.msg-receipt-paw');
+                        if (receipt) receipt.innerText = (index >= allOutWrappers.length - unreadByTarget) ? '🐾' : '🐾 🐾';
+                    });
+                }
+                if (isScrolledToBottom || isInitialLoad) logBox.scrollTop = logBox.scrollHeight;
+            });
+    }
+    
+    function handleTypingInput(field) {
+        field.style.height='auto'; field.style.height=Math.min(field.scrollHeight, 120)+'px';
+        const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+        
+        // --- NEW: Toggle the dynamic button hiding ---
+        const footerBar = document.getElementById('chatFooterBar');
+        if (footerBar) {
+            if (field.value.trim().length > 0) {
+                footerBar.classList.add('chat-typing-active');
+            } else {
+                footerBar.classList.remove('chat-typing-active');
+                field.style.height = '42px'; // Reset height cleanly if empty
+            }
+        }
+
+        if(!activeChatTarget) return;
+
+        if (field.value.trim().length > 0) {
+            if(!field.dataset.isTyping) {
+                field.dataset.isTyping = "true";
+                fetch(`${backendBaseUrl}/api/setTyping?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}&typing=true`).catch(()=>{});
+            }
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => {
+                field.dataset.isTyping = "";
+                fetch(`${backendBaseUrl}/api/setTyping?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}&typing=false`).catch(()=>{});
+            }, 2000);
+        } else {
+             field.dataset.isTyping = "";
+             fetch(`${backendBaseUrl}/api/setTyping?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}&typing=false`).catch(()=>{});
+        }
+    }
+
+    function processMediaFileTransmission(fileInput) {
+        if (!fileInput.files || !fileInput.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+                let w = img.width; let h = img.height;
+                if (w > h && w > 400) { h *= 400 / w; w = 400; } else if (h > 400) { w *= 400 / h; h = 400; }
+                canvas.width = w; canvas.height = h; ctx.drawImage(img, 0, 0, w, h);
+                const encodedPayloadString = "IMG_ATTACHMENT_DATA:" + canvas.toDataURL('image/jpeg', 0.6);
+                const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+
+                fetch(`${backendBaseUrl}/api/sendMessage?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
+                    method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: encodedPayloadString
+                }).then(() => { fileInput.value = ""; fetchActiveChatMessages(user, activeChatTarget); });
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+    }
+
+    function handleChatKeyDown(event) { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); triggerMessageDispatch(); } }
+    
+    function displaySystemAlert(title, message, icon = "⚠️") {
+        document.getElementById('sysAlertIcon').innerText = icon; 
+        document.getElementById('sysAlertTitle').innerText = title;
+        document.getElementById('sysAlertText').innerText = message; 
+        
+        // FIX: Now uses the .active class so the CSS animation actually fades it in!
+        document.getElementById('systemAlertModal').classList.add('active'); 
+    }
+    
+    function dismissCustomSystemAlert() {
+        document.getElementById('systemAlertModal').classList.remove('active');
+        if (document.getElementById('chatLounge').style.display !== 'flex') {
+            localStorage.removeItem('dipsum_logged_user');
+            document.getElementById('loginCard').style.display = 'block';
+            if (document.getElementById('authBtn')) document.getElementById('authBtn').innerText = "Access Account";
+        }
+    }
+    
+    function capitalizeFirstLetter(str) { return str ? str.charAt(0).toUpperCase() + str.slice(1) : ""; }
+
+    function executeOwnProfilePicUpload(fileInput) {
+        if (!fileInput.files || !fileInput.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+                const targetSize = 300; canvas.width = targetSize; canvas.height = targetSize;
+                let srcX = 0, srcY = 0, srcSize = Math.min(img.width, img.height);
+                if (img.width > img.height) srcX = (img.width - img.height) / 2; else srcY = (img.height - img.width) / 2;
+                ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, targetSize, targetSize);
+                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.92);
+                const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+                fetch(`${backendBaseUrl}/api/uploadProfilePic?user=${encodeURIComponent(user)}`, {
+                    method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: compressedBase64
+                }).then(() => {
+                    document.getElementById('myProfileAvatarElement').innerHTML = `<img src="${compressedBase64}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+                    syncCycle();
+                });
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+    }
+
+    function exitActiveMobileChatView() { activeChatTarget = null; currentLoadedMessageCount = 0; document.body.classList.remove('mobile-chat-view-engaged'); }
+    function updateHeaderUserStatusIndicator(isOnline) {
+        const wrapper = document.getElementById('userStatusWrapper');
+        if (wrapper) wrapper.innerHTML = isOnline ? `<img src="online.png" class="status-round-indicator online">` : `<img src="offline.png" class="status-round-indicator offline">`;
+    }
+
+    const stickerCollection = [
+        'tkiss.png', 'baby.png', 'backhug.png', 'hmmm.png', 'hugs.png', 'babyh.png', 'slllll.png',
+        'kiss.png', 'looks.png', 'sleep.png', 'ufbaby.png', 'uffhug.png', 'ufhug.png', 'ggkiss.png',
+        'ghug.png', 'gkiss.png', 'gsleep.png', 'hand.png', 'head.png', 'thug.png', 'angry.png'
+    ];
+
+    function toggleStickerDrawerOverlay() {
+        const drawer = document.getElementById('stickerMiniDrawer');
+        if(drawer) drawer.style.display = (drawer.style.display === 'none') ? 'flex' : 'none';
+    }
+
+    let currentReplyContext = "";
+    let currentReplyTargetId = "";
+
+    function prepareReply(textToQuote, targetId = "") {
+        currentReplyContext = textToQuote;
+        currentReplyTargetId = targetId;
+        const banner = document.getElementById('activeReplyBanner');
+        const bannerText = document.getElementById('replyBannerText');
+        if (banner && bannerText) { 
+            banner.style.display = 'block'; 
+            bannerText.innerText = textToQuote; 
+            document.getElementById('msgInputField').focus(); 
+        }
+    }
+
+    function cancelReply() { 
+        currentReplyContext = ""; 
+        currentReplyTargetId = ""; 
+        const banner = document.getElementById('activeReplyBanner'); 
+        if (banner) banner.style.display = 'none'; 
+    }
+
+    function triggerMessageDispatch() {
+        const inputField = document.getElementById('msgInputField');
+        if(!inputField) return;
+
+        let messageContent = inputField.value.trim();
+        if(!messageContent || !activeChatTarget) return;
+
+        messageContent = messageContent.replace(/\n/g, "<br>");
+        if (currentReplyContext !== "") {
+            let routingPrefix = currentReplyTargetId ? `[MSGID:${currentReplyTargetId}]` : "";
+            messageContent = `[REPLY]${routingPrefix}${currentReplyContext}[/REPLY]` + messageContent;
+            cancelReply(); 
+        }
+
+        const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+
+        let roomKey = [user, activeChatTarget].sort().join('#');
+        let securePayload = messageContent;
+        if (!securePayload.startsWith("IMG_ATTACHMENT_DATA:") && !securePayload.includes("[STICKER]")) {
+            securePayload = encryptE2E(securePayload, roomKey);
+        }
+
+        inputField.value = ""; 
+        inputField.style.height = "42px"; 
+        inputField.dataset.isTyping = "";
+        
+        // --- NEW: Reset dynamic UI back to default instantly when message is sent ---
+        const footerBar = document.getElementById('chatFooterBar');
+        if (footerBar) footerBar.classList.remove('chat-typing-active');
+
+        fetch(`${backendBaseUrl}/api/setTyping?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}&typing=false`).catch(()=>{});
+
+        fetch(`${backendBaseUrl}/api/sendMessage?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
+            method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: securePayload
+        }).then(res => res.text()).then(() => { fetchActiveChatMessages(user, activeChatTarget); });
+    }
+
+    function sendSticker(stickerFileName) {
+        const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+        if(!activeChatTarget) return;
+
+        let payload = `[STICKER]stickers/${stickerFileName}[/STICKER]`;
+        if (currentReplyContext !== "") { 
+            let routingPrefix = currentReplyTargetId ? `[MSGID:${currentReplyTargetId}]` : "";
+            payload = `[REPLY]${routingPrefix}${currentReplyContext}[/REPLY]` + payload; 
+            cancelReply(); 
+        }
+
+        fetch(`${backendBaseUrl}/api/sendMessage?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
+            method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: payload
+        }).then(() => {
+            document.getElementById('stickerMiniDrawer').style.display = 'none';
+            fetchActiveChatMessages(user, activeChatTarget);
+        });
+    }
+
+    
+    // --- RESTORED EMOJI HELPERS ---
+    function toggleEmojiDrawerOverlay() {
+        const drawer = document.getElementById('emojiMiniDrawer');
+        if(!drawer) return;
+        drawer.style.display = (drawer.style.display === 'none') ? 'grid' : 'none';
+        
+        // Auto-close sticker drawer if open
+        const stickerDrawer = document.getElementById('stickerMiniDrawer');
+        if(stickerDrawer) stickerDrawer.style.display = 'none';
+
+        // Drop the keyboard when opening the emoji drawer
+        if (drawer.style.display === 'grid') {
+            const inputField = document.getElementById('msgInputField');
+            if (inputField) inputField.blur();
+        }
+    }
+
+    function toggleStickerDrawerOverlay() {
+        const drawer = document.getElementById('stickerMiniDrawer');
+        if(drawer) drawer.style.display = (drawer.style.display === 'none') ? 'flex' : 'none';
+        
+        const emojiDrawer = document.getElementById('emojiMiniDrawer');
+        if(emojiDrawer) emojiDrawer.style.display = 'none';
+
+        // Drop the keyboard when opening the sticker drawer
+        if (drawer.style.display === 'flex') {
+            const inputField = document.getElementById('msgInputField');
+            if (inputField) inputField.blur();
+        }
+    }
+
+    function injectEmojiToken(emojiChar) {
+        const inputField = document.getElementById('msgInputField');
+        if(inputField) {
+            inputField.value += emojiChar;
+            // The focus() command was removed here so the keyboard won't pop up!
+        }
+    }
+
+    // --- NEW: LOGIC TO HANDLE TARGET SCROLL SCROLL-TO-REPLY HIGHLIGHTS ---
+    function navigateToQuotedMessage(msgElementId) {
+        const targetBubble = document.getElementById(msgElementId);
+        if (!targetBubble) return;
+
+        // Smoothly roll container viewport to targeted context bubble area
+        targetBubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Strip previous flash trackers to reset trigger timers cleanly
+        targetBubble.classList.remove('msg-highlight-active');
+        
+        // Trick engine reflow processing pipelines to guarantee animation restart
+        void targetBubble.offsetWidth; 
+
+        // Apply style animations
+        targetBubble.classList.add('msg-highlight-active');
+        
+        // Strip out highlight rules once animation finishes
+        setTimeout(() => {
+            targetBubble.classList.remove('msg-highlight-active');
+        }, 1500);
+    }
+
+    // --- NEW: HEARTBEAT DISPATCH & ANIMATION ---
+    function sendHeartbeat() {
+        const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+        if(!activeChatTarget) return;
+
+        let roomKey = [user, activeChatTarget].sort().join('#');
+        // Encrypt the heartbeat token so no one intercepts it!
+        let securePayload = encryptE2E("[SYSTEM_HEARTBEAT]", roomKey);
+
+        fetch(`${backendBaseUrl}/api/sendMessage?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
+            method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: securePayload
+        }).then(() => {
+            triggerHeartbeatAnimation(); // Flash it on your screen too!
+            fetchActiveChatMessages(user, activeChatTarget);
+        });
+    }
+
+    function sendInterrupt() {
+        const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+        if(!activeChatTarget) return;
+
+        // Pull the user's preference (defaults to 'boy')
+        let myAvatar = localStorage.getItem('dipsum_interrupt_avatar') || 'boy';
+        let roomKey = [user, activeChatTarget].sort().join('#');
+        
+        // Attach the avatar choice to the token!
+        let securePayload = encryptE2E(`[SYSTEM_INTERRUPT:${myAvatar}]`, roomKey);
+
+        fetch(`${backendBaseUrl}/api/sendMessage?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
+            method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: securePayload
+        }).then(() => {
+            triggerLocalInterrupt(myAvatar); // Flash it on your own screen!
+            fetchActiveChatMessages(user, activeChatTarget);
+        });
+    }
+
+    function triggerHeartbeatAnimation() {
+        const pane = document.querySelector('.chat-window-pane');
+        if (!pane) return;
+
+        // Create 15 floating icons
+        const numHearts = 15;
+        const iconArray = ['💖', '✨', '💕', '🌸'];
+
+        for(let i=0; i<numHearts; i++) {
+            let heart = document.createElement('div');
+            heart.className = 'floating-heart';
+            heart.innerText = iconArray[Math.floor(Math.random() * iconArray.length)];
+            
+            // Randomize starting positions and speeds
+            heart.style.left = (Math.random() * 80 + 10) + '%';
+            heart.style.animationDuration = (Math.random() * 2 + 2.5) + 's';
+            heart.style.fontSize = (Math.random() * 15 + 15) + 'px';
+            
+            pane.appendChild(heart);
+            setTimeout(() => heart.remove(), 4500); // Clean up DOM
+        }
+
+        // Tap into the device's native vibration motor!
+        if (navigator.vibrate) {
+            navigator.vibrate([40, 80, 40]); // A soft, double-tap heartbeat feel
+        }
+    }
+
+    // --- NEW: MONITORS SCROLL DEPTH TO TOGGLE FLOATING BUTTON VIEW STATUS ---
+    function handleChatLogScroll() {
+        const logBox = document.getElementById('chatLogDisplay');
+        const floatBtn = document.getElementById('scrollToBottomFloatingBtn');
+        if (!logBox || !floatBtn) return;
+
+        // Check if user has scrolled up more than 400 pixels from the bottom
+        let distanceFromBottom = logBox.scrollHeight - logBox.clientHeight - logBox.scrollTop;
+        
+        if (distanceFromBottom > 400) {
+            floatBtn.classList.add('visible');
+        } else {
+            floatBtn.classList.remove('visible');
+        }
+    }
+
+    // --- NEW: SNAPS LOG DISPLAY VIEWPORT CLEANLY BACK DOWN TO BASE LINE ---
+    function snapChatToBottom() {
+        const logBox = document.getElementById('chatLogDisplay');
+        if (logBox) {
+            logBox.scrollTo({ top: logBox.scrollHeight, behavior: 'smooth' });
+        }
+    }
+
+    // --- NEW: TIME CAPSULE LOGIC ---
+    let selectedCapsuleMinutes = 15;
+
+    function openCapsuleModal() {
+        document.getElementById('capsuleInput').value = "";
+        selectedCapsuleMinutes = 15;
+        document.querySelectorAll('.capsule-timer-btn').forEach(b => b.classList.remove('selected'));
+        document.querySelector('.capsule-timer-btn').classList.add('selected');
+        document.getElementById('capsuleCreatorModal').classList.add('active');
+        
+        // Hide keyboard nicely if a drawer was open
+        const inputField = document.getElementById('msgInputField');
+        if (inputField) inputField.blur();
+    }
+
+    function setCapsuleTime(btn, mins) {
+        document.querySelectorAll('.capsule-timer-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedCapsuleMinutes = mins;
+    }
+
+    function dispatchTimeCapsule() {
+        const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+        if(!activeChatTarget) return;
+
+        let messageContent = document.getElementById('capsuleInput').value.trim();
+        if(!messageContent) return;
+        messageContent = messageContent.replace(/\n/g, "<br>");
+
+        // Calculate unlock time
+        let unlockTimestamp = Date.now() + (selectedCapsuleMinutes * 60 * 1000);
+        let finalPayload = `[CAPSULE:${unlockTimestamp}]${messageContent}`;
+
+        let roomKey = [user, activeChatTarget].sort().join('#');
+        let securePayload = encryptE2E(finalPayload, roomKey);
+
+        document.getElementById('capsuleCreatorModal').classList.remove('active');
+
+        fetch(`${backendBaseUrl}/api/sendMessage?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
+            method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: securePayload
+        }).then(() => {
+            fetchActiveChatMessages(user, activeChatTarget);
+        });
+    }
+
+    let capsuleQueue = [];
+    let isCapsulePlaying = false;
+    let typingTimeout; // Tracks the typing so we can stop it if they close early
+
+    function triggerCapsuleOverlay(sender, text) {
+        capsuleQueue.push({sender, text});
+        playNextCapsule();
+    }
+
+    function playNextCapsule() {
+        if(isCapsulePlaying || capsuleQueue.length === 0) return;
+        isCapsulePlaying = true;
+        
+        let cap = capsuleQueue.shift();
+        const overlay = document.getElementById('capsuleDisplayOverlay');
+        document.getElementById('capsuleSenderName').innerText = capitalizeFirstLetter(cap.sender);
+        
+        const textBox = document.getElementById('capsuleRevealedText');
+        textBox.innerHTML = ""; // Clear it for the typing effect
+        
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+        
+        overlay.style.display = 'flex';
+        
+        setTimeout(() => {
+            overlay.classList.add('visible');
+            overlay.classList.add('open');
+            
+            // --- THE SLOW BURN TYPING EFFECT ---
+            let i = 0;
+            let isTag = false;
+            let currentHTML = "";
+            let rawString = cap.text;
+            
+            function typeWriter() {
+                if (i < rawString.length) {
+                    let char = rawString.charAt(i);
+                    currentHTML += char;
+                    
+                    // Add a blinking cursor while typing
+                    textBox.innerHTML = currentHTML + '<span style="border-right: 2px solid #7a1029; margin-left: 2px;"></span>';
+                    i++;
+                    
+                    // Skip delays if we are rendering an HTML tag like <br>
+                    if (char === '<') isTag = true;
+                    if (char === '>') isTag = false;
+                    
+                    // Randomize the speed slightly to mimic human typing (30ms to 80ms)
+                    let typingSpeed = isTag ? 0 : Math.floor(Math.random() * 50) + 30; 
+                    
+                    typingTimeout = setTimeout(typeWriter, typingSpeed);
+                } else {
+                    textBox.innerHTML = currentHTML; // Remove cursor when done
+                }
+            }
+            
+            // Wait for the envelope to pop up before starting to type (800ms)
+            setTimeout(typeWriter, 800);
+            
+        }, 50);
+    }
+
+    function closeCapsuleOverlay() {
+        clearTimeout(typingTimeout); // Stop the typing effect if closed early
+        const overlay = document.getElementById('capsuleDisplayOverlay');
+        overlay.classList.remove('visible');
+        overlay.classList.remove('open');
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            isCapsulePlaying = false;
+            playNextCapsule(); 
+        }, 1000);
+    }
+
+    // --- NEW: PWA CUSTOM INSTALL PROMPT ---
+    let deferredPrompt;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent Chrome's default mini-infobar from appearing
+        e.preventDefault();
+        // Stash the event so it can be triggered later.
+        deferredPrompt = e;
+        
+        // Show our beautiful custom modal after a short delay
+        setTimeout(() => {
+            const installModal = document.getElementById('installPromptModal');
+            if (installModal && !localStorage.getItem('dipsum_install_dismissed')) {
+                installModal.classList.add('active');
+            }
+        }, 1500);
+    });
+
+    document.getElementById('btnInstallApp').addEventListener('click', async () => {
+        document.getElementById('installPromptModal').classList.remove('active');
+        if (deferredPrompt) {
+            // Show the native Android install prompt
+            deferredPrompt.prompt();
+            // Wait for the user to respond
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to the install prompt: ${outcome}`);
+            deferredPrompt = null;
+        }
+    });
+
+    // If they click "Use in Browser", remember it so we don't annoy them again
+    document.querySelector('#installPromptModal .btn-decline, #installPromptModal button[onclick*="remove(\'active\')"]').addEventListener('click', () => {
+        localStorage.setItem('dipsum_install_dismissed', 'true');
+    });
+
+    // --- NEW: SETTINGS & THEME ENGINE ---
+    
+    // 1. Check Memory on Load
+    window.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('dipsum_dark_mode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+    });
+
+    function toggleAppTheme() {
+        const body = document.body;
+        body.classList.toggle('dark-mode');
+        const isDark = body.classList.contains('dark-mode');
+        
+        // Save to browser memory
+        localStorage.setItem('dipsum_dark_mode', isDark);
+        
+        // Update the icon
+        document.getElementById('themeToggleBtn').innerText = isDark ? '🌑' : '☀️';
+    }
+
+    function openSettingsMenu() {
+        document.getElementById('settingsMenuModal').classList.add('active');
+        
+        // Set the correct icon state when opened
+        const isDark = document.body.classList.contains('dark-mode');
+        document.getElementById('themeToggleBtn').innerText = isDark ? '🌑' : '☀️';
+        
+        // Clear password fields
+        document.getElementById('settingOldPass').value = '';
+        document.getElementById('settingNewPass').value = '';
+        
+        // Load the saved Avatar preference into the custom buttons
+        let savedAvatar = localStorage.getItem('dipsum_interrupt_avatar') || 'boy';
+        setInterruptAvatar(savedAvatar);
+        
+        populateSettingsConnections();
+    }
+
+    // NEW: Controls the custom Avatar buttons
+    function setInterruptAvatar(choice) {
+        document.getElementById('settingInterruptAvatar').value = choice;
+        localStorage.setItem('dipsum_interrupt_avatar', choice);
+        
+        const btnBoy = document.getElementById('btnAvatarBoy');
+        const btnGirl = document.getElementById('btnAvatarGirl');
+        
+        if (choice === 'boy') {
+            btnBoy.style.background = '#aad052'; btnBoy.style.color = 'white';
+            btnGirl.style.background = 'transparent'; btnGirl.style.color = '#aad052';
+        } else {
+            btnGirl.style.background = '#aad052'; btnGirl.style.color = 'white';
+            btnBoy.style.background = 'transparent'; btnBoy.style.color = '#aad052';
+        }
+    }
+
+    function populateSettingsConnections() {
+        const listDiv = document.getElementById('settingsConnectionsList');
+        listDiv.innerHTML = '';
+        const rows = document.getElementById('userListContainer').querySelectorAll('.status-dot');
+        let friendsCount = 0;
+        
+        rows.forEach(dot => {
+            const name = dot.nextElementSibling.nextElementSibling.innerText.trim();
+            if(dot.parentElement.nextElementSibling.innerText.includes("Connected")) {
+                listDiv.innerHTML += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #e6c7c3;">
+                        <span style="font-weight: bold; font-size: 14px;">${capitalizeFirstLetter(name)}</span>
+                        <button onclick="removeConnection('${name}')" style="background: transparent; border: 1px solid #ffc8b0; color: #7a1029; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">💔 Unfriend</button>
+                    </div>`;
+                friendsCount++;
+            }
+        });
+        
+        if (friendsCount === 0) {
+            listDiv.innerHTML = "<p style='font-size:12px; color:#7a1029; font-style: italic; text-align: center;'>No connections yet.</p>";
+        }
+    }
+
+    // Placeholder functions for Step 2
+    function submitPasswordChange() {
+        displaySystemAlert("Coming Soon", "The security update will be active in Step 2!", "⏳");
+    }
+
+    function saveInterruptPreference() {
+        const choice = document.getElementById('settingInterruptAvatar').value;
+        localStorage.setItem('dipsum_interrupt_avatar', choice);
+    }
+    
+    // --- CONNECTED SETTINGS & SECURITY LOGIC ---
+    
+    // --- SECURE RECOVERY ID LOGIC ---
+    let actualRecoveryId = "";
+
+    function fetchAndDisplayRecoveryId() {
+        const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+        fetch(`${backendBaseUrl}/api/getRecoveryId?user=${encodeURIComponent(user)}`)
+            .then(res => res.text())
+            .then(id => {
+                if (id !== "NONE") {
+                    actualRecoveryId = id; // Store it safely in background memory
+                    document.getElementById('userRecoveryId').innerText = "#XXXXX"; // Keep the screen masked
+                }
+            });
+    }
+
+    function revealAndCopyRecoveryId() {
+        if (!actualRecoveryId) return; // Prevent action if not loaded yet
+        
+        const badge = document.getElementById('userRecoveryId');
+        if (badge.innerText === "Copied!") return; // Prevent spam clicking
+        
+        // Copy to device clipboard
+        navigator.clipboard.writeText(actualRecoveryId).then(() => {
+            // Visual feedback
+            badge.innerText = "Copied!";
+            badge.style.background = "#22c55e"; // Success Green
+            badge.style.color = "white";
+            
+            // Show the actual ID after 1 second
+            setTimeout(() => {
+                badge.innerText = actualRecoveryId;
+                badge.style.background = "#e6c7c3"; // Revert to original color
+                badge.style.color = "#7a1029";
+                
+                // Securely mask it again after 4 seconds
+                setTimeout(() => {
+                    badge.innerText = "#XXXXX";
+                }, 4000);
+                
+            }, 1000);
+        }).catch(() => {
+            // Fallback just in case a specific mobile browser blocks the clipboard
+            badge.innerText = actualRecoveryId;
+            setTimeout(() => { badge.innerText = "#XXXXX"; }, 4000);
+        });
+    }
+
+    function submitPasswordChange() {
+        const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+        const oldP = document.getElementById('settingOldPass').value.trim();
+        const newP = document.getElementById('settingNewPass').value.trim();
+        
+        if(!oldP || !newP) return displaySystemAlert("Missing Info", "Please fill out both password fields.", "🚫");
+        
+        fetch(`${backendBaseUrl}/api/changePassword?user=${encodeURIComponent(user)}&old=${encodeURIComponent(oldP)}&new=${encodeURIComponent(newP)}`)
+            .then(res => res.text())
+            .then(response => {
+                if (response === "SUCCESS") {
+                    displaySystemAlert("Success", "Your password has been updated safely!", "✅");
+                    document.getElementById('settingOldPass').value = '';
+                    document.getElementById('settingNewPass').value = '';
+                } else {
+                    displaySystemAlert("Failed", response, "❌");
+                }
+            });
+    }
+
+    // --- CUSTOM CONFIRMATION LOGIC FOR UNFRIEND & DELETE ---
+    let pendingActionType = null;
+    let pendingActionTarget = null;
+
+    function removeConnection(targetUser) {
+        pendingActionType = 'unfriend';
+        pendingActionTarget = targetUser;
+        document.getElementById('actionConfirmIcon').innerText = '💔';
+        document.getElementById('actionConfirmTitle').innerText = 'Unfriend User';
+        document.getElementById('actionConfirmMessage').innerHTML = `Are you sure you want to completely unfriend <b>${capitalizeFirstLetter(targetUser)}</b>?`;
+        document.getElementById('actionConfirmBtn').innerText = 'Yes, Unfriend';
+        document.getElementById('actionConfirmModal').classList.add('active');
+    }
+
+    function deleteUserAccount(targetUser) {
+        pendingActionType = 'delete';
+        pendingActionTarget = targetUser;
+        document.getElementById('actionConfirmIcon').innerText = '🗑️';
+        document.getElementById('actionConfirmTitle').innerText = 'Delete Account';
+        document.getElementById('actionConfirmMessage').innerHTML = `WARNING: Completely wipe <b>${capitalizeFirstLetter(targetUser)}</b> and all their chat data?`;
+        document.getElementById('actionConfirmBtn').innerText = 'Yes, Delete';
+        document.getElementById('actionConfirmModal').classList.add('active');
+    }
+
+    function executeConfirmedAction(proceed) {
+        document.getElementById('actionConfirmModal').classList.remove('active');
+        
+        if (!proceed || !pendingActionTarget) {
+            pendingActionType = null;
+            pendingActionTarget = null;
+            return;
+        }
+
+        const targetUser = pendingActionTarget;
+        const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
+
+        if (pendingActionType === 'unfriend') {
+            fetch(`${backendBaseUrl}/api/unfriend?user1=${encodeURIComponent(user)}&user2=${encodeURIComponent(targetUser)}`)
+                .then(res => res.text())
+                .then(response => {
+                    if (response === "SUCCESS") {
+                        displaySystemAlert("Unfriended", `You are no longer connected with ${capitalizeFirstLetter(targetUser)}.`, "💔");
+                        populateSettingsConnections(); 
+                        syncCycle(true); 
+                        if (activeChatTarget === targetUser) exitActiveMobileChatView();
+                    }
+                });
+        } else if (pendingActionType === 'delete') {
+            fetch(`${backendBaseUrl}/api/deleteUser?admin=${encodeURIComponent(user)}&target=${encodeURIComponent(targetUser)}`)
+                .then(res => res.text())
+                .then(r => {
+                    if (r === "DELETED") { 
+                        displaySystemAlert("Deleted", `${capitalizeFirstLetter(targetUser)} has been wiped from the server.`, "🗑️");
+                        syncCycle(true);
+                        if(activeChatTarget === targetUser) exitActiveMobileChatView(); 
+                    }
+                });
+        }
+        
+        pendingActionType = null;
+        pendingActionTarget = null;
+    }
+
+    // --- ACCOUNT RECOVERY LOGIC ---
+    function openForgotPasswordModal() {
+        document.getElementById('recoverUsernameInput').value = '';
+        document.getElementById('recoverIdInput').value = '';
+        document.getElementById('forgotPasswordModal').classList.add('active');
+    }
+
+    function closeForgotPasswordModal() {
+        document.getElementById('forgotPasswordModal').classList.remove('active');
+    }
+
+    function submitPasswordRecovery() {
+        const user = document.getElementById('recoverUsernameInput').value.trim();
+        const recId = document.getElementById('recoverIdInput').value.trim();
+        
+        if (!user || !recId) return displaySystemAlert("Missing Info", "Please enter both Username and Recovery #ID.", "🚫");
+        if (!recId.startsWith('#')) return displaySystemAlert("Invalid Format", "Your Recovery ID must start with a # symbol.", "⚠️");
+
+        const btn = document.querySelector('#forgotPasswordModal .btn-accept');
+        const originalText = btn.innerText;
+        btn.innerText = "Processing...";
+        btn.disabled = true;
+
+        fetch(`${backendBaseUrl}/api/recoverAccount?user=${encodeURIComponent(user)}&recoveryId=${encodeURIComponent(recId)}`)
+            .then(res => res.text())
+            .then(data => {
+                btn.innerText = originalText;
+                btn.disabled = false;
+                
+                if (data.startsWith("SUCCESS")) {
+                    closeForgotPasswordModal();
+                    
+                    // Display the temporary password returned from the Java backend
+                    let displayMessage = data.replace("SUCCESS: ", "") + "\n\nLog in now and check your messages from 'Help'!";
+                    displaySystemAlert("Account Recovered!", displayMessage, "✨");
+                    
+                    // Auto-fill the username so they just have to type the temporary password
+                    document.getElementById('usernameInput').value = user;
+                    document.getElementById('passwordInput').value = '';
+                } else {
+                    displaySystemAlert("Recovery Failed", "Invalid Username or Recovery #ID.", "❌");
+                }
+            })
+            .catch(() => {
+                btn.innerText = originalText;
+                btn.disabled = false;
+                displaySystemAlert("Offline", "Could not connect to backend.", "📡");
+            });
+    }
+
+    
+</script>
+<script>
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(err => console.error('SW failed:', err));
+</script>
+</body>
+</html>
