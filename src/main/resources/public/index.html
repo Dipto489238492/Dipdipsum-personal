@@ -2097,6 +2097,40 @@
             });
     }
 
+    // --- PUSH NOTIFICATION SETUP ---
+    function urlB64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    function setupPushNotifications(username) {
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            navigator.serviceWorker.ready.then(function(registration) {
+                // YOUR NEW PUBLIC KEY IS HERE:
+                const applicationServerKey = urlB64ToUint8Array('BG-lGbA-VakgExNuYveaT89O9aKE0NqjRwAiX_cifvYYVWme1mJCb7cgDwvf7pEca5vtuaekEj9qEri-G_ry1CA');
+                
+                registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: applicationServerKey
+                }).then(function(subscription) {
+                    fetch(`${backendBaseUrl}/api/saveSubscription?username=${encodeURIComponent(username)}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(subscription)
+                    });
+                }).catch(function(err) {
+                    console.log('Failed to subscribe the user: ', err);
+                });
+            });
+        }
+    }
+
     
 </script>
 <script>
