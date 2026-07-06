@@ -39,9 +39,9 @@ public class Main {
         Security.addProvider(new BouncyCastleProvider());
         try {
             pushService = new PushService();
-            pushService.setSubject("mailto:cellflow24@gmail.com");
-            pushService.setPublicKey("BDDhyYsSLzcQFyLfD-r_NUqwFZ9TNxR6woPhXrImD1TGHdEOam7x-yGWPDrsLMPqRh-v-_W7xPXy8PccWuJCnkI");
-            pushService.setPrivateKey("a7WkNnBOk0meXEkN-R8doC0rKuk70omQvaEkt-OOiZs");
+            pushService.setSubject("mailto:dipunc887@gmail.com");
+            pushService.setPublicKey("BG-lGbA-VakgExNuYveaT89O9aKE0NqjRwAiX_cifvYYVWme1mJCb7cgDwvf7pEca5vtuaekEj9qEri-G_ry1CA");
+            pushService.setPrivateKey("BO7myUXJaz6N4drnzZY7dAC6a2VFcEC7jM4l1o1BJxc");
             System.out.println("✅ Push Service initialized successfully");
         } catch (Exception e) {
             System.err.println("Critical Error starting Push Service: " + e.getMessage());
