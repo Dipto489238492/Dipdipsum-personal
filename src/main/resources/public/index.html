@@ -246,16 +246,18 @@
         }
 
         .interrupt-pop-image {
-            width: 80%; 
-            max-width: 300px;
-            object-fit: contain;
-            filter: drop-shadow(0 15px 25px rgba(0,0,0,0.5)); 
-            animation: avatarPopIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+            width: 100%; 
+            height: 100%;
+            object-fit: cover; /* This forces the image to perfectly fill the 9:16 screen */
+            object-position: center; /* Keeps the character centered */
+            filter: drop-shadow(0 0 40px rgba(0,0,0,0.8)); /* Deepens the shadow for contrast */
+            animation: cinematicTakeover 0.5s ease-out forwards; 
         }
 
-        @keyframes avatarPopIn {
-            0% { opacity: 0; transform: scale(0.5) translateY(50px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
+        @keyframes cinematicTakeover {
+            /* A subtle zoom-out and fade-in looks much more premium for a full-screen image */
+            0% { opacity: 0; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
         }
         
     </style>
